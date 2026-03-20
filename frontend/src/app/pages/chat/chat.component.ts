@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ChatService } from '../../core/chat.service';
@@ -404,7 +404,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     private mediaService: MediaService,
     private userService: UserService,
     private wsService: WebSocketService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -416,6 +417,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           (msg.senderId === this.selectedUser.merID || msg.recipientId === this.selectedUser.merID)) {
         this.messages.push(msg);
         this.shouldScroll = true;
+      }
+    });
+
+    // Handle route parameter :merID (if user navigates to /chat/:merID)
+    this.route.paramMap.subscribe(params => {
+      const recipientMerID = params.get('merID');
+      if (recipientMerID) {
+        this.chatService.startChat(recipientMerID).subscribe({
+          next: (user) => this.selectUser(user),
+          error: (err) => console.error('Failed to start chat:', err)
+        });
       }
     });
   }

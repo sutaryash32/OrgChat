@@ -12,12 +12,17 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'chat/:merID',
+    loadComponent: () => import('./pages/chat/chat.component').then(m => m.ChatComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'media/:id',
     loadComponent: () => import('./pages/media-preview/media-preview.component').then(m => m.MediaPreviewComponent),
     canActivate: [authGuard]
   },
   {
-    path: 'profile/:id',
+    path: 'profile/:merID',
     loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard]
   },
