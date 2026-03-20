@@ -1,7 +1,6 @@
 package com.orgchat.controller;
 
 import com.orgchat.model.Media;
-import com.orgchat.model.User;
 import com.orgchat.service.MediaService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,11 +9,11 @@ import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -31,17 +30,18 @@ public class MediaController {
 
     @PostMapping("/upload")
     public ResponseEntity<Media> uploadMedia(
-            @AuthenticationPrincipal User user,
+            Principal principal,
             @RequestParam("file") MultipartFile file) throws IOException {
+        String merID = principal.getName();
         log.info("POST /api/media/upload — user: '{}', file: '{}', size: {} bytes",
-                user.getMerID(), file.getOriginalFilename(), file.getSize());
+                merID, file.getOriginalFilename(), file.getSize());
         try {
-            Media media = mediaService.upload(user.getMerID(), file);
+            Media media = mediaService.upload(merID, file);
             log.info("Upload complete — media id: {}", media.getId());
             return ResponseEntity.ok(media);
         } catch (Exception e) {
             log.error("Upload failed for user '{}', file '{}': {}",
-                    user.getMerID(), file.getOriginalFilename(), e.getMessage(), e);
+                    merID, file.getOriginalFilename(), e.getMessage(), e);
             throw e;
         }
     }
@@ -72,15 +72,16 @@ public class MediaController {
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteMedia(
-            @AuthenticationPrincipal User user,
+            Principal principal,
             @PathVariable String id) {
-        log.info("DELETE /api/media/delete/{} — requester: '{}'", id, user.getMerID());
-        boolean deleted = mediaService.delete(id, user.getMerID());
+        String merID = principal.getName();
+        log.info("DELETE /api/media/delete/{} — requester: '{}'", id, merID);
+        boolean deleted = mediaService.delete(id, merID);
         if (deleted) {
             log.info("Media deleted: {}", id);
             return ResponseEntity.ok().build();
         } else {
-            log.warn("Media delete denied or not found: {} (requester: '{}')", id, user.getMerID());
+            log.warn("Media delete denied or not found: {} (requester: '{}')", id, merID);
             return ResponseEntity.notFound().build();
         }
     }

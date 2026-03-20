@@ -92,61 +92,63 @@ import { User } from '../../core/models';
   `,
   styles: [`
     .settings-container {
-      min-height: 100vh; background: #0f0f17; color: #e0e0e0;
+      min-height: 100vh; background: #f5f6fa; color: #1a1a2e;
       font-family: 'Inter', sans-serif; padding: 24px;
       max-width: 640px; margin: 0 auto;
+      overflow-y: auto;
     }
 
     .back-btn {
       display: inline-flex; align-items: center; gap: 6px;
-      background: none; border: none; color: rgba(255,255,255,0.6);
+      background: none; border: none; color: #9ca3af;
       cursor: pointer; font-size: 0.85rem; padding: 8px 12px;
       border-radius: 8px; transition: all 0.2s; margin-bottom: 16px;
       font-family: 'Inter', sans-serif;
     }
-    .back-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .back-btn:hover { color: #1a1a2e; background: #e8eaf0; }
 
     h1 {
       font-size: 1.8rem; font-weight: 700; margin: 0 0 32px;
-      background: linear-gradient(135deg, #818cf8, #c084fc);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
     .settings-section { margin-bottom: 28px; }
     .settings-section h2 {
       font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 1px; color: rgba(255,255,255,0.4); margin: 0 0 12px;
+      letter-spacing: 1px; color: #9ca3af; margin: 0 0 12px;
     }
 
     .settings-card {
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      background: #ffffff; border: 1px solid #e8eaf0;
       border-radius: 16px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
     .setting-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid #f0f1f5;
     }
     .setting-row:last-child { border-bottom: none; }
 
     .setting-info { display: flex; flex-direction: column; gap: 2px; }
-    .setting-label { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
-    .setting-value { font-size: 0.9rem; font-weight: 500; }
-    .id-value { color: #818cf8; font-family: monospace; }
+    .setting-label { color: #9ca3af; font-size: 0.8rem; }
+    .setting-value { font-size: 0.9rem; font-weight: 500; color: #1a1a2e; }
+    .id-value { color: #6366f1; font-family: monospace; }
 
     .badge {
       padding: 4px 12px; border-radius: 20px; font-size: 0.7rem;
       font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .secure-badge { background: rgba(16,185,129,0.15); color: #34d399; }
+    .secure-badge { background: rgba(16,185,129,0.1); color: #059669; }
 
     .danger-btn {
       padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.2);
-      background: rgba(239,68,68,0.1); color: #f87171; font-size: 0.85rem;
+      background: rgba(239,68,68,0.05); color: #dc2626; font-size: 0.85rem;
       cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
     }
-    .danger-btn:hover { background: rgba(239,68,68,0.2); }
+    .danger-btn:hover { background: rgba(239,68,68,0.1); }
   `]
 })
 export class SettingsComponent {

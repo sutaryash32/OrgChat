@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MediaService } from '../../core/media.service';
 import { Media } from '../../core/models';
-import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-media-preview',
@@ -86,28 +85,24 @@ import { environment } from '../../../environments/environment';
   `,
   styles: [`
     .preview-container {
-      min-height: 100vh;
-      background: #0f0f17;
-      color: #e0e0e0;
+      min-height: 100vh; background: #f5f6fa; color: #1a1a2e;
       font-family: 'Inter', sans-serif;
     }
 
     .preview-header {
       display: flex; align-items: center; gap: 16px;
-      padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: rgba(255,255,255,0.02);
+      padding: 16px 24px; border-bottom: 1px solid #e8eaf0;
+      background: #ffffff;
     }
-
     .preview-header h2 { flex: 1; margin: 0; font-size: 1rem; font-weight: 500; }
 
     .back-btn {
       display: flex; align-items: center; gap: 6px;
-      background: none; border: none; color: rgba(255,255,255,0.6);
+      background: none; border: none; color: #9ca3af;
       cursor: pointer; font-size: 0.85rem; padding: 8px 12px;
-      border-radius: 8px; transition: all 0.2s;
-      font-family: 'Inter', sans-serif;
+      border-radius: 8px; transition: all 0.2s; font-family: 'Inter', sans-serif;
     }
-    .back-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .back-btn:hover { color: #1a1a2e; background: #f0f1f5; }
 
     .header-actions { display: flex; gap: 8px; }
 
@@ -117,18 +112,16 @@ import { environment } from '../../../environments/environment';
       cursor: pointer; transition: all 0.2s; border: none;
       font-family: 'Inter', sans-serif; text-decoration: none;
     }
-
     .download-btn {
-      background: rgba(99,102,241,0.15); color: #818cf8;
-      border: 1px solid rgba(99,102,241,0.2);
+      background: rgba(99,102,241,0.08); color: #6366f1;
+      border: 1px solid rgba(99,102,241,0.15);
     }
-    .download-btn:hover { background: rgba(99,102,241,0.25); }
-
+    .download-btn:hover { background: rgba(99,102,241,0.15); }
     .delete-btn {
-      background: rgba(239,68,68,0.1); color: #f87171;
-      border: 1px solid rgba(239,68,68,0.15);
+      background: rgba(239,68,68,0.05); color: #dc2626;
+      border: 1px solid rgba(239,68,68,0.1);
     }
-    .delete-btn:hover { background: rgba(239,68,68,0.2); }
+    .delete-btn:hover { background: rgba(239,68,68,0.1); }
 
     .preview-content {
       display: flex; flex-direction: column; align-items: center;
@@ -137,40 +130,40 @@ import { environment } from '../../../environments/environment';
 
     .preview-image {
       max-width: 90%; max-height: 60vh; border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
       animation: fadeIn 0.5s ease;
     }
-
     .preview-video {
       max-width: 90%; max-height: 60vh; border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
     }
 
     .file-icon-large {
       text-align: center; padding: 40px;
-      background: rgba(255,255,255,0.03); border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.06);
+      background: #ffffff; border-radius: 20px;
+      border: 1px solid #e8eaf0; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
-    .file-icon-large svg { color: rgba(255,255,255,0.2); }
-    .file-name { font-weight: 600; margin: 16px 0 4px; }
-    .file-details { color: rgba(255,255,255,0.4); font-size: 0.85rem; margin: 0; }
+    .file-icon-large svg { color: #d1d5db; }
+    .file-name { font-weight: 600; margin: 16px 0 4px; color: #1a1a2e; }
+    .file-details { color: #9ca3af; font-size: 0.85rem; margin: 0; }
 
     .media-info {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px; width: 100%; max-width: 600px;
-      padding: 24px; background: rgba(255,255,255,0.03);
-      border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);
+      padding: 24px; background: #ffffff;
+      border-radius: 16px; border: 1px solid #e8eaf0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
-
     .info-item { display: flex; flex-direction: column; gap: 4px; }
-    .label { color: rgba(255,255,255,0.4); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    .value { font-size: 0.9rem; }
+    .label { color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .value { font-size: 0.9rem; color: #1a1a2e; }
 
     .loading-spinner {
       display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 80px 0;
+      color: #9ca3af;
     }
     .spinner {
-      width: 40px; height: 40px; border: 3px solid rgba(99,102,241,0.2);
+      width: 40px; height: 40px; border: 3px solid rgba(99,102,241,0.15);
       border-top-color: #6366f1; border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -196,7 +189,6 @@ export class MediaPreviewComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.downloadUrl = this.mediaService.getDownloadUrl(id);
-      // We need media metadata — fetch from the media list or a separate endpoint
       this.loading = false;
       this.media = {
         id, uploaderId: '', fileName: 'Media File', fileType: 'unknown',
@@ -214,7 +206,5 @@ export class MediaPreviewComponent implements OnInit {
     }
   }
 
-  goBack(): void {
-    window.history.back();
-  }
+  goBack(): void { window.history.back(); }
 }

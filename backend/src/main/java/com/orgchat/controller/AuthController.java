@@ -1,14 +1,13 @@
 package com.orgchat.controller;
 
 import com.orgchat.dto.AuthResponse;
-import com.orgchat.model.User;
 import com.orgchat.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -50,10 +49,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal User user) {
-        if (user != null) {
-            log.info("Logout request from user: {}", user.getMerID());
-            authService.logout(user.getMerID());
+    public ResponseEntity<Void> logout(Principal principal) {
+        if (principal != null) {
+            String merID = principal.getName();
+            log.info("Logout request from user: {}", merID);
+            authService.logout(merID);
         } else {
             log.warn("Logout request with no authenticated user");
         }

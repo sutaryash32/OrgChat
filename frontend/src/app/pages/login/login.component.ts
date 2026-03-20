@@ -55,26 +55,18 @@ import { AuthService } from '../../core/auth.service';
   `,
   styles: [`
     .login-container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
-      position: relative;
-      overflow: hidden;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #fdf4ff 100%);
+      position: relative; overflow: hidden;
     }
 
     .login-card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 24px;
-      padding: 48px 40px;
-      width: 100%;
-      max-width: 420px;
-      text-align: center;
-      z-index: 1;
-      animation: fadeInUp 0.6s ease-out;
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 24px; padding: 48px 40px;
+      width: 100%; max-width: 420px; text-align: center;
+      z-index: 1; animation: fadeInUp 0.6s ease-out;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.08);
     }
 
     @keyframes fadeInUp {
@@ -85,12 +77,9 @@ import { AuthService } from '../../core/auth.service';
     .logo-section { margin-bottom: 32px; }
 
     .logo-icon {
-      width: 72px;
-      height: 72px;
-      margin: 0 auto 16px;
+      width: 72px; height: 72px; margin: 0 auto 16px;
       animation: float 3s ease-in-out infinite;
     }
-
     .logo-icon svg { width: 100%; height: 100%; }
 
     @keyframes float {
@@ -99,84 +88,45 @@ import { AuthService } from '../../core/auth.service';
     }
 
     .app-title {
-      font-family: 'Inter', sans-serif;
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-family: 'Inter', sans-serif; font-size: 2rem; font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       margin: 0 0 8px;
     }
 
-    .app-subtitle {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 0.9rem;
-      margin: 0;
-      line-height: 1.5;
-    }
+    .app-subtitle { color: #9ca3af; font-size: 0.9rem; margin: 0; line-height: 1.5; }
 
     .sso-button {
-      width: 100%;
-      padding: 14px 24px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      transition: all 0.3s ease;
-      font-family: 'Inter', sans-serif;
+      width: 100%; padding: 14px 24px;
+      border: 1px solid #e0e2e8; border-radius: 12px;
+      background: #ffffff; color: #1a1a2e;
+      font-size: 1rem; font-weight: 500; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      transition: all 0.3s ease; font-family: 'Inter', sans-serif;
     }
-
     .sso-button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(99, 102, 241, 0.5);
+      background: #f5f6fa; border-color: rgba(99,102,241,0.4);
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.2);
+      box-shadow: 0 8px 25px rgba(99,102,241,0.12);
     }
 
     .google-icon { width: 22px; height: 22px; }
 
     .divider {
-      display: flex;
-      align-items: center;
-      margin: 28px 0;
-      color: rgba(255, 255, 255, 0.3);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      display: flex; align-items: center; margin: 28px 0;
+      color: #9ca3af; font-size: 0.75rem;
+      text-transform: uppercase; letter-spacing: 1px;
     }
-
     .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.1);
+      content: ''; flex: 1; height: 1px; background: #e8eaf0;
     }
-
     .divider span { padding: 0 12px; }
 
-    .footer-text {
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 0.8rem;
-      line-height: 1.6;
-    }
+    .footer-text { color: #9ca3af; font-size: 0.8rem; line-height: 1.6; }
+    .footer-text strong { color: #6366f1; }
 
-    .footer-text strong { color: rgba(129, 140, 248, 0.8); }
-
-    /* Floating background shapes */
     .floating-shapes { position: absolute; inset: 0; pointer-events: none; }
-
-    .shape {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.08;
-    }
+    .shape { position: absolute; border-radius: 50%; opacity: 0.08; }
 
     .shape-1 {
       width: 400px; height: 400px;
@@ -184,14 +134,12 @@ import { AuthService } from '../../core/auth.service';
       top: -100px; right: -100px;
       animation: drift 15s ease-in-out infinite;
     }
-
     .shape-2 {
       width: 300px; height: 300px;
       background: linear-gradient(135deg, #ec4899, #f97316);
       bottom: -80px; left: -80px;
       animation: drift 18s ease-in-out infinite reverse;
     }
-
     .shape-3 {
       width: 200px; height: 200px;
       background: linear-gradient(135deg, #06b6d4, #10b981);
@@ -216,7 +164,6 @@ export class LoginComponent {
     private route: ActivatedRoute,
     private router: Router
   ) {
-    // Handle OAuth2 callback
     this.route.queryParams.subscribe(params => {
       const token = params['token'];
       const merID = params['merID'];
@@ -225,7 +172,6 @@ export class LoginComponent {
       }
     });
 
-    // Redirect if already authenticated
     if (this.authService.isAuthenticated) {
       this.router.navigate(['/chat']);
     }

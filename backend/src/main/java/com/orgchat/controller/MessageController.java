@@ -2,15 +2,15 @@ package com.orgchat.controller;
 
 import com.orgchat.dto.MessageRequest;
 import com.orgchat.dto.MessageResponse;
-import com.orgchat.model.User;
 import com.orgchat.service.MessageService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -26,15 +26,16 @@ public class MessageController {
 
     @PostMapping("/send")
     public ResponseEntity<MessageResponse> sendMessage(
-            @AuthenticationPrincipal User user,
+            Principal principal,
             @Valid @RequestBody MessageRequest request) {
-        log.info("POST /api/messages/send — from: '{}' to: '{}'", user.getMerID(), request.getRecipientId());
+        String merID = principal.getName();
+        log.info("POST /api/messages/send — from: '{}' to: '{}'", merID, request.getRecipientId());
         try {
-            MessageResponse response = messageService.sendMessage(user.getMerID(), request);
+            MessageResponse response = messageService.sendMessage(merID, request);
             log.info("Message sent successfully — id: {}", response.getId());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Message send failed from '{}': {}", user.getMerID(), e.getMessage(), e);
+            log.error("Message send failed from '{}': {}", merID, e.getMessage(), e);
             throw e;
         }
     }
@@ -55,19 +56,21 @@ public class MessageController {
 
     @GetMapping("/conversation")
     public ResponseEntity<Page<MessageResponse>> getConversation(
-            @AuthenticationPrincipal User user,
+            Principal principal,
             @RequestParam String withUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
+        String merID = principal.getName();
         log.info("GET /api/messages/conversation — '{}' with '{}' (page: {}, size: {})",
-                user.getMerID(), withUser, page, size);
+                merID, withUser, page, size);
         return ResponseEntity.ok(
-                messageService.getConversation(user.getMerID(), withUser, page, size));
+                messageService.getConversation(merID, withUser, page, size));
     }
 
     @GetMapping("/unread/count")
-    public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal User user) {
-        log.debug("GET /api/messages/unread/count for '{}'", user.getMerID());
-        return ResponseEntity.ok(messageService.getUnreadCount(user.getMerID()));
+    public ResponseEntity<Long> getUnreadCount(Principal principal) {
+        String merID = principal.getName();
+        log.debug("GET /api/messages/unread/count for '{}'", merID);
+        return ResponseEntity.ok(messageService.getUnreadCount(merID));
     }
 }
