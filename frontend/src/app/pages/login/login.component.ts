@@ -43,7 +43,7 @@ export class LoginComponent implements OnInit {
     
     this.userService.getUserByMerID(merID).subscribe({
       next: (userProfile: any) => {
-        localStorage.setItem('orgchat_user', JSON.stringify(userProfile));
+        this.authService.updateCurrentUser(userProfile);
         this.router.navigate(['/chat']);
       },
       error: (err: any) => {
@@ -56,7 +56,7 @@ export class LoginComponent implements OnInit {
           role: 'USER',
           ssoProvider: 'google'
         };
-        localStorage.setItem('orgchat_user', JSON.stringify(user));
+        this.authService.updateCurrentUser(user);
         this.router.navigate(['/chat']);
       }
     });

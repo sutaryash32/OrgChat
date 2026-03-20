@@ -34,16 +34,6 @@ public class UserController {
             return ResponseEntity.status(401).build();
         }
 
-        boolean isSelf = currentMerID.equals(id);
-        boolean isAdmin = userService.findByMerID(currentMerID)
-                .map(user -> "ADMIN".equalsIgnoreCase(user.getRole()))
-                .orElse(false);
-
-        if (!isSelf && !isAdmin) {
-            log.warn("Forbidden user profile access attempt by '{}' for '{}'", currentMerID, id);
-            return ResponseEntity.status(403).build();
-        }
-
         return userService.findByMerID(id)
                 .map(user -> {
                     log.info("User profile found: {} ({})", user.getDisplayName(), id);
@@ -61,15 +51,6 @@ public class UserController {
         
         if (currentMerID == null) {
             return ResponseEntity.status(401).build();
-        }
-        
-        boolean isAdmin = userService.findByMerID(currentMerID)
-                .map(user -> "ADMIN".equalsIgnoreCase(user.getRole()))
-                .orElse(false);
-                
-        if (!isAdmin) {
-            log.warn("Forbidden bulk user list access attempt by '{}'", currentMerID);
-            return ResponseEntity.status(403).build();
         }
         
         List<UserSummaryDTO> users = userService.findAllSummaries();

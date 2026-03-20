@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { Message } from './models';
 
 @Injectable({ providedIn: 'root' })
@@ -18,11 +18,11 @@ export class ChatService {
 
   getConversation(merID1: string, merID2: string, page: number = 0, pageSize: number = 50): Observable<Message[]> {
     const params = new HttpParams()
-      .set('merID1', merID1)
-      .set('merID2', merID2)
+      .set('withUser', merID2)
       .set('page', page.toString())
-      .set('pageSize', pageSize.toString());
-    return this.http.get<Message[]>(`${this.apiUrl}/conversation`, { params });
+      .set('size', pageSize.toString());
+    return this.http.get<any>(`${this.apiUrl}/conversation`, { params })
+      .pipe(map(response => response.content as Message[]));
   }
 
   getUnreadCount(): Observable<{ unreadCount: number }> {

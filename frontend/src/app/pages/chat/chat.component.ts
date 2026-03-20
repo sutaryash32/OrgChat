@@ -43,7 +43,32 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.webSocketService.connect();
     this.subscriptions.push(
       this.webSocketService.messages$.subscribe(msg => {
-        this.messages.push(msg);
+        const isFromMe = msg.senderId === this.currentUser?.merID;
+        const otherUserMerID = isFromMe ? msg.recipientId : msg.senderId;
+
+        // 1. Only push to screen if we are currently looking at their chat
+        if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+          this.messages.push(msg);
+        }
+
+        // 2. Dynamically add to sidebar if they aren't there!
+        const existingSidebarUser = this.users.find(u => u.merID === otherUserMerID);
+        if (!existingSidebarUser) {
+          this.userService.getUserByMerID(otherUserMerID).subscribe({
+            next: (user) => {
+              const summary: UserSummary = {
+                merID: user.merID,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl
+              };
+              this.users.unshift(summary);
+              if (!this.searchQuery) {
+                this.filteredUsers = [...this.users];
+              }
+            },
+            error: (err) => console.error('Failed to fetch new sender profile', err)
+          });
+        }
       })
     );
   }
@@ -69,10 +94,6 @@ export class ChatComponent implements OnInit, OnDestroy {
     // Explicit merID search
     this.userService.getUserByMerID(query).subscribe({
       next: (user: User) => {
-        if (user.merID === this.currentUser?.merID) {
-          this.searchError = true;
-          return;
-        }
         const summary: UserSummary = {
           merID: user.merID,
           displayName: user.displayName,

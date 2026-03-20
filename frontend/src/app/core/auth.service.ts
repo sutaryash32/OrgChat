@@ -43,6 +43,11 @@ export class AuthService {
     return this.currentUser?.merID || null;
   }
 
+  updateCurrentUser(user: User): void {
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUserSubject.next(user);
+  }
+
   handleSSOCallback(code: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/sso/callback`, { code }).pipe(
       tap((response: AuthResponse) => {

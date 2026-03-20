@@ -34,7 +34,7 @@ spring:
 # Custom application properties
 app:
   jwt:
-    secret: ${JWT_SECRET:}
+    secret: ${JWT_SECRET:OrgChatPrototypeSuperSecretKeyDevMode2026VolatileFix}
     expiration-ms: 86400000
     refresh-expiration-ms: 604800000
   cors:

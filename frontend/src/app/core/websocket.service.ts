@@ -30,7 +30,7 @@ export class WebSocketService implements OnDestroy {
 
       onConnect: () => {
         this.stompClient!.subscribe(
-          `/user/${merID}/queue/messages`,
+          `/user/queue/messages`,
           (frame: IMessage) => {
             const message: Message = JSON.parse(frame.body);
             this.messageSubject.next(message);
