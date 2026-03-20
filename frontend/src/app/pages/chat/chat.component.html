@@ -8,6 +8,14 @@
           <span class="user-name">{{ currentUser?.displayName }}</span>
         </div>
       </div>
+      <button class="icon-btn" (click)="toggleMultiSelectMode()" title="Share to multiple contacts" [class.active]="isMultiSelectMode">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </button>
       <button class="icon-btn" (click)="toggleTheme()" title="Toggle theme">
         @if (isDarkTheme) {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -33,9 +41,26 @@
       }
     </div>
 
+    @if (isMultiSelectMode && selectedRecipients.size > 0) {
+      <div class="multi-select-banner">
+        <span>{{ selectedRecipients.size }} selected</span>
+        <button class="done-btn" (click)="toggleMultiSelectMode()">Done</button>
+      </div>
+    }
+
     <div class="contacts-list">
       @for (user of filteredUsers; track user.merID) {
-        <div class="contact-item" [class.active]="selectedUser?.merID === user.merID" [class.has-unread]="false" (click)="selectUser(user)">
+        <div class="contact-item"
+          [class.active]="selectedUser?.merID === user.merID"
+          [class.has-unread]="false"
+          [class.multi-selectable]="isMultiSelectMode"
+          [class.selected]="isRecipientSelected(user.merID)"
+          (click)="selectUser(user)">
+
+          @if (isMultiSelectMode) {
+            <div class="checkbox-indicator" [class.checked]="isRecipientSelected(user.merID)"></div>
+          }
+
           <div class="contact-avatar">
             {{ user.displayName.charAt(0).toUpperCase() }}
             <div class="unread-dot"></div>
@@ -80,6 +105,87 @@
             >
               <div class="message-bubble" [class.just-edited]="justEditedId() === msg.id" [class.editing]="editingMessageId === msg.id">
                 <p class="message-text">{{ msg.content }}</p>
+
+                <!-- Media rendering -->
+                @if (msg.mediaId) {
+                  @switch (getMediaCategory(msg.mediaId)) {
+                    @case ('loading') {
+                      <div class="media-skeleton"></div>
+                    }
+                    @case ('image') {
+                      <div class="media-image-card" (click)="openMedia(msg.mediaId)">
+                        <img class="media-thumb"
+                          [src]="getMediaThumbUrl(msg.mediaId)"
+                          [alt]="mediaCache[msg.mediaId]?.fileName">
+                        <div class="media-card-footer">
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
+                        </div>
+                      </div>
+                    }
+                    @case ('video') {
+                      <video class="media-video" controls preload="metadata">
+                        <source [src]="getMediaThumbUrl(msg.mediaId)">
+                        Your browser does not support the video tag.
+                      </video>
+                      <div class="media-card-footer">
+                        <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
+                        <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
+                      </div>
+                    }
+                    @case ('document') {
+                      <div class="media-file-card" [attr.data-type]="getDocumentIconType(msg.mediaId)">
+                        <div class="media-file-icon-wrap" [class]="'icon-' + getDocumentIconType(msg.mediaId)">
+                          @switch (getDocumentIconType(msg.mediaId)) {
+                            @case ('pdf') {
+                              <span>PDF</span>
+                            }
+                            @case ('word') {
+                              <span>DOC</span>
+                            }
+                            @case ('excel') {
+                              <span>XLS</span>
+                            }
+                            @case ('ppt') {
+                              <span>PPT</span>
+                            }
+                            @default {
+                              <span>FILE</span>
+                            }
+                          }
+                        </div>
+                        <div class="media-file-info">
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
+                          <span class="media-filetype">{{ mediaCache[msg.mediaId]?.fileType }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
+                        </div>
+                        <a class="media-download-btn"
+                          [href]="getMediaThumbUrl(msg.mediaId)"
+                          [download]="mediaCache[msg.mediaId]?.fileName"
+                          title="Download">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </a>
+                      </div>
+                    }
+                    @case ('file') {
+                      <div class="media-file-card">
+                        <div class="media-file-icon-wrap icon-file">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        </div>
+                        <div class="media-file-info">
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
+                        </div>
+                        <a class="media-download-btn"
+                          [href]="getMediaThumbUrl(msg.mediaId)"
+                          [download]="mediaCache[msg.mediaId]?.fileName"
+                          title="Download">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </a>
+                      </div>
+                    }
+                  }
+                }
               </div>
 
               @if (msg.senderId === currentUser?.merID) {
@@ -130,7 +236,36 @@
             <button class="cancel-edit-btn" (click)="cancelEdit()" title="Cancel edit">✕</button>
           </div>
         }
-        <input type="text" [(ngModel)]="messageContent" placeholder="Type a message..." (keyup.enter)="isEditing() ? submitEdit() : sendMessage()"/>
+
+        @if (isMultiSelectMode && selectedRecipients.size > 0) {
+          <div class="multi-send-banner">
+            <span>Sending to: {{ getMultiSelectNames() }}</span>
+          </div>
+        }
+
+        <input type="text"
+          [(ngModel)]="messageContent"
+          [placeholder]="isMultiSelectMode && selectedRecipients.size === 0 ? 'Select contacts above to share' : 'Type a message...'"
+          [disabled]="isMultiSelectMode && selectedRecipients.size === 0"
+          (keyup.enter)="isEditing() ? submitEdit() : sendMessage()"/>
+
+        <button class="attach-btn"
+          (click)="fileInput.click()"
+          [disabled]="!selectedUser && !isMultiSelectMode"
+          title="Attach file">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 0 18.8-4.3M22 12.5a10 10 0 0 0-18.8 2.2"/>
+          </svg>
+        </button>
+        <input type="file" #fileInput hidden (change)="onFileSelected($event)"/>
+
+        @if (isUploading) {
+          <div class="upload-progress">
+            <span class="spinner"></span>
+            <span class="progress-text">Uploading...</span>
+          </div>
+        }
+
         @if (isEditing()) {
           <button class="send-btn edit-send" (click)="submitEdit()" title="Save edit">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -138,7 +273,10 @@
             </svg>
           </button>
         } @else {
-          <button class="send-btn" (click)="sendMessage()" title="Send message">
+          <button class="send-btn"
+            (click)="sendMessage()"
+            [disabled]="!messageContent.trim() || (isMultiSelectMode && selectedRecipients.size === 0)"
+            title="Send message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
@@ -149,4 +287,11 @@
       <div class="empty-state">Select a contact to start chatting</div>
     }
   </main>
+
+  <!-- Toast notification -->
+  @if (showToast) {
+    <div class="toast-notification">
+      {{ toastMessage }}
+    </div>
+  }
 </div>

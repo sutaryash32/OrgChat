@@ -18,7 +18,7 @@ export class MediaPreviewComponent implements OnInit {
 
   media: Media | null = null;
   loading = true;
-  error: string | null = null;
+  error = false;
   downloadUrl = '';
 
   get isImage(): boolean {
@@ -30,23 +30,21 @@ export class MediaPreviewComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      const id = params['id'];
-      if (id) {
-        this.loadMedia(id);
-      }
-    });
-  }
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      this.error = true;
+      this.loading = false;
+      return;
+    }
 
-  loadMedia(id: string): void {
-    this.mediaService.getMediaInfo(id).subscribe({
+    this.downloadUrl = this.mediaService.getDownloadUrl(id);
+    this.mediaService.getMediaById(id).subscribe({
       next: (media) => {
         this.media = media;
-        this.downloadUrl = this.mediaService.getDownloadUrl(id);
         this.loading = false;
       },
       error: (err) => {
-        this.error = 'Failed to load media';
+        this.error = true;
         this.loading = false;
       }
     });
@@ -57,7 +55,7 @@ export class MediaPreviewComponent implements OnInit {
       this.mediaService.delete(this.media.id).subscribe({
         next: () => this.router.navigate(['/chat']),
         error: (err) => {
-          this.error = 'Failed to delete media';
+          this.error = true;
           console.error('Delete failed:', err);
         }
       });
@@ -68,3 +66,4 @@ export class MediaPreviewComponent implements OnInit {
     this.router.navigate(['/chat']);
   }
 }
+

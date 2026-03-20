@@ -3,6 +3,11 @@
 
   @if (loading) {
     <div class="loading">Loading media...</div>
+  } @else if (error) {
+    <div class="error">
+      <p>File not found or could not be loaded.</p>
+      <button class="btn btn-secondary" (click)="goBack()">Return to Chat</button>
+    </div>
   } @else if (media) {
     <div class="media-info">
       <h1>{{ media.fileName }}</h1>
@@ -41,3 +46,4 @@
     }
   }
 </div>
+

@@ -6,8 +6,9 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ChatService } from '../../core/chat.service';
 import { UserService } from '../../core/user.service';
+import { MediaService } from '../../core/media.service';
 import { WebSocketService } from '../../core/websocket.service';
-import { Message, User, UserSummary } from '../../core/models';
+import { Message, User, UserSummary, Media } from '../../core/models';
 
 @Component({
   selector: 'app-chat',
@@ -20,6 +21,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private chatService = inject(ChatService);
   private userService = inject(UserService);
+  mediaService = inject(MediaService);  // Public so it can be used in templates
   private webSocketService = inject(WebSocketService);
   private router = inject(Router);
 
@@ -39,6 +41,15 @@ export class ChatComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   justEditedId = signal<string | null>(null);
   isEditing = computed(() => !!this.editingMessageId);
+
+  // Media and multi-select properties
+  mediaCache: Record<string, Media> = {};
+  isMultiSelectMode = false;
+  selectedRecipients = new Set<string>();
+  showToast = false;
+  toastMessage = '';
+  isUploading = false;
+
   private subscriptions: Subscription[] = [];
 
   ngOnInit(): void {
@@ -80,6 +91,10 @@ export class ChatComponent implements OnInit, OnDestroy {
           // 1. Only push to screen if we are currently looking at their chat
           if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
             this.messages.push(msg);
+            // Load media metadata if message has media
+            if (msg.mediaId && !this.mediaCache[msg.mediaId]) {
+              this.loadMediaForMessage(msg);
+            }
           }
 
           // 2. Dynamically add to sidebar if they aren't there!
@@ -131,7 +146,7 @@ export class ChatComponent implements OnInit, OnDestroy {
           displayName: user.displayName,
           avatarUrl: user.avatarUrl
         };
-        this.users.unshift(summary); // Add to top of list
+        this.users.unshift(summary);
         this.filteredUsers = [...this.users];
         this.selectUser(summary);
         this.searchQuery = '';
@@ -142,14 +157,37 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
+  toggleMultiSelectMode(): void {
+    this.isMultiSelectMode = !this.isMultiSelectMode;
+    if (this.isMultiSelectMode) {
+      this.selectedRecipients.clear();
+    }
+  }
+
+  toggleRecipient(merID: string): void {
+    if (this.selectedRecipients.has(merID)) {
+      this.selectedRecipients.delete(merID);
+    } else {
+      this.selectedRecipients.add(merID);
+    }
+  }
+
+  isRecipientSelected(merID: string): boolean {
+    return this.selectedRecipients.has(merID);
+  }
+
   selectUser(user: UserSummary): void {
+    if (this.isMultiSelectMode) {
+      // In multi-select mode: toggle recipient instead of switching chat
+      this.toggleRecipient(user.merID);
+      return;
+    }
+
+    // Normal single contact selection
     this.selectedUser = user;
     this.messages = [];
     this.messageContent = '';
     this.isLoading.set(true);
-
-    // The contact-selected class is bound via [class.contact-selected]
-    // Angular will re-render and trigger the animation
     this.loadConversation();
   }
 
@@ -159,6 +197,8 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.chatService.getConversation(this.currentUser.merID, this.selectedUser.merID, 0, 50).subscribe({
       next: (messages) => {
         this.messages = messages;
+        // Load media cache for all mediaIds in conversation
+        this.loadMediaForMessages(messages);
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -168,16 +208,95 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  sendMessage(): void {
-    if (!this.messageContent.trim() || !this.selectedUser) return;
+  loadMediaForMessages(messages: Message[]): void {
+    const mediaIds = messages
+      .filter(m => m.mediaId && !this.mediaCache[m.mediaId])
+      .map(m => m.mediaId as string)
+      .filter((id, idx, arr) => arr.indexOf(id) === idx); // Unique IDs
 
-    this.chatService.sendMessage(this.selectedUser.merID, this.messageContent).subscribe({
-      next: (message) => {
-        this.messages.push(message);
-        this.messageContent = '';
+    mediaIds.forEach(id => this.loadMediaForId(id));
+  }
+
+  loadMediaForMessage(message: Message): void {
+    if (message.mediaId && !this.mediaCache[message.mediaId]) {
+      this.loadMediaForId(message.mediaId);
+    }
+  }
+
+  private loadMediaForId(mediaId: string): void {
+    this.mediaService.getMediaById(mediaId).subscribe({
+      next: (media) => {
+        this.mediaCache[mediaId] = media;
       },
-      error: (err) => console.error('Failed to send message:', err)
+      error: (err) => {
+        console.error(`Failed to load media metadata for ${mediaId}:`, err);
+      }
     });
+  }
+
+  sendMessage(): void {
+    if (this.isMultiSelectMode && this.selectedRecipients.size > 0) {
+      // Multi-recipient send
+      if (!this.messageContent.trim()) return;
+
+      this.chatService.sendToMultiple(
+        Array.from(this.selectedRecipients),
+        this.messageContent
+      ).subscribe({
+        next: () => {
+          this.showToastMessage(`✓ Sent to ${this.selectedRecipients.size} contacts`);
+          this.messageContent = '';
+          this.selectedRecipients.clear();
+          this.isMultiSelectMode = false;
+        },
+        error: (err) => console.error('Failed to send multi-message:', err)
+      });
+    } else if (!this.messageContent.trim() || !this.selectedUser) {
+      return;
+    } else {
+      // Single recipient send
+      this.chatService.sendMessage(this.selectedUser.merID, this.messageContent).subscribe({
+        next: (message) => {
+          this.messages.push(message);
+          this.messageContent = '';
+        },
+        error: (err) => console.error('Failed to send message:', err)
+      });
+    }
+  }
+
+  getMediaCategory(mediaId: string): 'image' | 'video' | 'document' | 'file' | 'loading' {
+    if (!mediaId) return 'loading';
+    if (!this.mediaCache[mediaId]) return 'loading';
+    return this.mediaService.getFileCategory(this.mediaCache[mediaId].fileType);
+  }
+
+  getMediaThumbUrl(mediaId: string): string {
+    return this.mediaService.getDownloadUrl(mediaId);
+  }
+
+  openMedia(mediaId: string): void {
+    this.router.navigate(['/media', mediaId]);
+  }
+
+  getDocumentIconType(mediaId: string): 'pdf' | 'word' | 'excel' | 'ppt' | 'text' | 'document' {
+    if (!this.mediaCache[mediaId]) return 'document';
+    return this.mediaService.getDocumentIconType(this.mediaCache[mediaId].fileType);
+  }
+
+  getMultiSelectNames(): string {
+    return Array.from(this.selectedRecipients)
+      .slice(0, 2)
+      .map(id => this.users.find(u => u.merID === id)?.displayName || id)
+      .join(', ') + (this.selectedRecipients.size > 2 ? `, +${this.selectedRecipients.size - 2} more` : '');
+  }
+
+  showToastMessage(message: string): void {
+    this.toastMessage = message;
+    this.showToast = true;
+    setTimeout(() => {
+      this.showToast = false;
+    }, 2500);
   }
 
   logout(): void {
@@ -281,4 +400,72 @@ export class ChatComponent implements OnInit, OnDestroy {
       }, 250);
     }
   }
+
+  onFileSelected(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file || !this.currentUser) {
+      target.value = ''; // Reset input
+      return;
+    }
+
+    // Validate file size (500MB max)
+    const MAX_SIZE = 500 * 1024 * 1024; // 500MB
+    if (file.size > MAX_SIZE) {
+      this.showToastMessage(`❌ File too large (max 500MB)`);
+      target.value = '';
+      return;
+    }
+
+    this.isUploading = true;
+
+    this.mediaService.upload(file, this.currentUser.merID).subscribe({
+      next: (media) => {
+        this.isUploading = false;
+        target.value = ''; // Reset input
+
+        if (this.isMultiSelectMode && this.selectedRecipients.size > 0) {
+          // Send to multiple recipients
+          this.chatService.sendToMultiple(
+            Array.from(this.selectedRecipients),
+            '',
+            media.id
+          ).subscribe({
+            next: () => {
+              this.showToastMessage(`✓ Shared to ${this.selectedRecipients.size} contacts`);
+              this.selectedRecipients.clear();
+              this.isMultiSelectMode = false;
+            },
+            error: (err) => {
+              console.error('Failed to send media to multiple recipients:', err);
+              this.showToastMessage('❌ Failed to share media');
+            }
+          });
+        } else if (this.selectedUser) {
+          // Send to single recipient
+          this.chatService.sendMessage(this.selectedUser.merID, '', media.id).subscribe({
+            next: (message) => {
+              this.messages.push(message);
+              // Load media metadata
+              if (media.id) {
+                this.mediaCache[media.id] = media;
+              }
+              this.showToastMessage('✓ Media sent');
+            },
+            error: (err) => {
+              console.error('Failed to send media:', err);
+              this.showToastMessage('❌ Failed to send media');
+            }
+          });
+        }
+      },
+      error: (err) => {
+        this.isUploading = false;
+        target.value = ''; // Reset input
+        console.error('Failed to upload file:', err);
+        this.showToastMessage('❌ Upload failed');
+      }
+    });
+  }
 }
+

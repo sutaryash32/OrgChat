@@ -37,6 +37,16 @@ export interface Media {
   expiry?: string;
 }
 
+export interface MediaCache {
+  [mediaId: string]: Media;
+}
+
+export interface MultiMessageRequest {
+  recipientIds: string[];
+  content?: string;
+  mediaId?: string;
+}
+
 export interface AuthResponse {
   token: string;
   refreshToken: string;

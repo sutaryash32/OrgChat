@@ -2,6 +2,7 @@ package com.orgchat.controller;
 
 import com.orgchat.dto.MessageRequest;
 import com.orgchat.dto.MessageResponse;
+import com.orgchat.dto.MultiMessageRequest;
 import com.orgchat.service.MessageService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -36,6 +38,21 @@ public class MessageController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Message send failed from '{}': {}", merID, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PostMapping("/send-multi")
+    public ResponseEntity<List<MessageResponse>> sendToMultiple(
+            @AuthenticationPrincipal String merID,
+            @Valid @RequestBody MultiMessageRequest request) {
+        log.info("POST /api/messages/send-multi — from: '{}' to {} recipients", merID, request.getRecipientIds().size());
+        try {
+            List<MessageResponse> responses = messageService.sendToMultiple(merID, request);
+            log.info("Multi-message sent successfully — sent to {} recipients", responses.size());
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            log.error("Multi-message send failed from '{}': {}", merID, e.getMessage(), e);
             throw e;
         }
     }

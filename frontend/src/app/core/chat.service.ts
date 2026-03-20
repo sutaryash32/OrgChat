@@ -1,12 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { Message } from './models';
+import { Message, MultiMessageRequest } from './models';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/messages';
+  private apiUrl = `${environment.apiUrl}/messages`;
 
   sendMessage(recipientId: string, content: string, mediaId?: string): Observable<Message> {
     return this.http.post<Message>(`${this.apiUrl}/send`, {
@@ -14,6 +15,15 @@ export class ChatService {
       content,
       mediaId
     });
+  }
+
+  sendToMultiple(recipientIds: string[], content: string, mediaId?: string): Observable<Message[]> {
+    const request: MultiMessageRequest = {
+      recipientIds,
+      content,
+      mediaId
+    };
+    return this.http.post<Message[]>(`${this.apiUrl}/send-multi`, request);
   }
 
   getConversation(merID1: string, merID2: string, page: number = 0, pageSize: number = 50): Observable<Message[]> {
@@ -37,3 +47,4 @@ export class ChatService {
     return this.http.delete<void>(`${this.apiUrl}/${messageId}`);
   }
 }
+

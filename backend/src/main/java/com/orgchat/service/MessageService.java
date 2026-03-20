@@ -2,6 +2,7 @@ package com.orgchat.service;
 
 import com.orgchat.dto.MessageRequest;
 import com.orgchat.dto.MessageResponse;
+import com.orgchat.dto.MultiMessageRequest;
 import com.orgchat.model.Message;
 import com.orgchat.model.User;
 import com.orgchat.repository.MessageRepository;
@@ -78,6 +79,57 @@ public class MessageService {
         }
 
         return response;
+    }
+
+    public List<MessageResponse> sendToMultiple(String senderMerID, MultiMessageRequest request) {
+        log.info("Sending multi-message from '{}' to {} recipients", senderMerID, request.getRecipientIds().size());
+
+        if (request.getRecipientIds() == null || request.getRecipientIds().isEmpty()) {
+            log.error("Multi-message send failed — no recipients specified, from: {}", senderMerID);
+            throw new IllegalArgumentException("At least one recipient is required");
+        }
+
+        List<MessageResponse> responses = new java.util.ArrayList<>();
+
+        for (String recipientId : request.getRecipientIds()) {
+            try {
+                Message message = Message.builder()
+                        .senderId(senderMerID)
+                        .recipientId(recipientId)
+                        .content(request.getContent())
+                        .mediaId(request.getMediaId())
+                        .timestamp(Instant.now())
+                        .read(false)
+                        .build();
+
+                Message saved = messageRepository.save(message);
+                log.info("Multi-message saved with id: {} (from: {} -> to: {})", saved.getId(), senderMerID, recipientId);
+
+                if (request.getMediaId() != null) {
+                    log.debug("Multi-message includes media attachment: {}", request.getMediaId());
+                }
+
+                Map<String, String> senderDisplayNames = resolveDisplayNames(Set.of(saved.getSenderId()));
+                MessageResponse response = toResponse(saved, senderDisplayNames);
+                responses.add(response);
+
+                // Real-time delivery via WebSocket
+                try {
+                    messagingTemplate.convertAndSendToUser(
+                            recipientId,
+                            "/queue/messages",
+                            response);
+                    log.debug("WebSocket multi-message delivered to user: {}", recipientId);
+                } catch (Exception e) {
+                    log.error("WebSocket delivery failed for user '{}': {}", recipientId, e.getMessage(), e);
+                }
+            } catch (Exception e) {
+                log.error("Failed to send multi-message to recipient '{}': {}", recipientId, e.getMessage(), e);
+            }
+        }
+
+        log.info("Multi-message send complete — successfully sent to {} recipients", responses.size());
+        return responses;
     }
 
     public Optional<MessageResponse> findById(String id) {
