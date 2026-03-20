@@ -113,10 +113,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     }
 
     private String deriveBaseMerID(String email) {
-        return email
-                .replace("@", "_")
-                .replaceAll("[^a-zA-Z0-9._-]", "_")
-                .toLowerCase();
+        return email.split("@")[0].toLowerCase();
     }
 
     private String resolveUniqueMerID(String baseMerID) {

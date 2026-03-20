@@ -56,8 +56,22 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserSummaryDTO>> getAllUsers() {
-        log.info("GET /api/users — fetching all users");
+    public ResponseEntity<List<UserSummaryDTO>> getAllUsers(@AuthenticationPrincipal String currentMerID) {
+        log.info("GET /api/users — fetching all users by '{}'", currentMerID);
+        
+        if (currentMerID == null) {
+            return ResponseEntity.status(401).build();
+        }
+        
+        boolean isAdmin = userService.findByMerID(currentMerID)
+                .map(user -> "ADMIN".equalsIgnoreCase(user.getRole()))
+                .orElse(false);
+                
+        if (!isAdmin) {
+            log.warn("Forbidden bulk user list access attempt by '{}'", currentMerID);
+            return ResponseEntity.status(403).build();
+        }
+        
         List<UserSummaryDTO> users = userService.findAllSummaries();
         log.info("Returning {} users", users.size());
         return ResponseEntity.ok(users);

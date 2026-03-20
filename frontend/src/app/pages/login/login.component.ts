@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { UserService } from '../../core/user.service';
 
 @Component({
   selector: 'app-login',
@@ -14,6 +15,7 @@ export class LoginComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
+  private userService = inject(UserService);
   
   loading = false;
   errorMessage: string | null = null;
@@ -38,16 +40,26 @@ export class LoginComponent implements OnInit {
 
   private handleTokenRedirect(token: string, merID: string, email: string, displayName: string): void {
     localStorage.setItem('orgchat_token', token);
-    const user = {
-      id: merID,
-      merID: merID,
-      displayName: displayName,
-      email: email,
-      role: 'USER',
-      ssoProvider: 'google'
-    };
-    localStorage.setItem('orgchat_user', JSON.stringify(user));
-    this.router.navigate(['/chat']);
+    
+    this.userService.getUserByMerID(merID).subscribe({
+      next: (userProfile: any) => {
+        localStorage.setItem('orgchat_user', JSON.stringify(userProfile));
+        this.router.navigate(['/chat']);
+      },
+      error: (err: any) => {
+        console.error('Failed to fetch user profile, using basic info', err);
+        const user = {
+          id: merID,
+          merID: merID,
+          displayName: displayName || (email ? email.split('@')[0] : merID),
+          email: email,
+          role: 'USER',
+          ssoProvider: 'google'
+        };
+        localStorage.setItem('orgchat_user', JSON.stringify(user));
+        this.router.navigate(['/chat']);
+      }
+    });
   }
 
   loginWithGoogle(): void {

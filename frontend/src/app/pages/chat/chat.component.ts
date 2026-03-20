@@ -30,6 +30,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   messages: Message[] = [];
   messageContent = '';
   searchQuery = '';
+  searchError = false;
   private subscriptions: Subscription[] = [];
 
   ngOnInit(): void {
@@ -39,7 +40,6 @@ export class ChatComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.loadUsers();
     this.webSocketService.connect();
     this.subscriptions.push(
       this.webSocketService.messages$.subscribe(msg => {
@@ -53,26 +53,40 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.webSocketService.disconnect();
   }
 
-  loadUsers(): void {
-    this.userService.getAllUsers().subscribe({
-      next: (users) => {
-        this.users = users.filter(u => u.merID !== this.currentUser?.merID);
-        this.filteredUsers = [...this.users];
-      },
-      error: (err) => console.error('Failed to load users:', err)
-    });
-  }
-
   filterUsers(): void {
-    if (!this.searchQuery.trim()) {
-      this.filteredUsers = [...this.users];
-    } else {
-      const query = this.searchQuery.toLowerCase();
-      this.filteredUsers = this.users.filter(u =>
-        u.displayName.toLowerCase().includes(query) ||
-        u.merID.toLowerCase().includes(query)
-      );
+    this.searchError = false;
+    const query = this.searchQuery.trim().toLowerCase();
+    
+    if (!query) return;
+
+    // Local check first
+    const existing = this.filteredUsers.find(u => u.merID.toLowerCase() === query);
+    if (existing) {
+      this.selectUser(existing);
+      return;
     }
+
+    // Explicit merID search
+    this.userService.getUserByMerID(query).subscribe({
+      next: (user: User) => {
+        if (user.merID === this.currentUser?.merID) {
+          this.searchError = true;
+          return;
+        }
+        const summary: UserSummary = {
+          merID: user.merID,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl
+        };
+        this.users.unshift(summary); // Add to top of list
+        this.filteredUsers = [...this.users];
+        this.selectUser(summary);
+        this.searchQuery = '';
+      },
+      error: (err: any) => {
+        this.searchError = true;
+      }
+    });
   }
 
   selectUser(user: UserSummary): void {
