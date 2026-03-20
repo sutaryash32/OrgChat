@@ -20,11 +20,34 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     this.activatedRoute.queryParams.subscribe(params => {
+      const token = params['token'];
+      const merID = params['merID'];
+
+      if (token && merID) {
+        // Handle redirect from backend OAuth2 success handler
+        this.handleTokenRedirect(token, merID, params['email'] || '', params['displayName'] || '');
+        return;
+      }
+
       const code = params['code'];
       if (code) {
         this.handleOAuthCallback(code);
       }
     });
+  }
+
+  private handleTokenRedirect(token: string, merID: string, email: string, displayName: string): void {
+    localStorage.setItem('orgchat_token', token);
+    const user = {
+      id: merID,
+      merID: merID,
+      displayName: displayName,
+      email: email,
+      role: 'USER',
+      ssoProvider: 'google'
+    };
+    localStorage.setItem('orgchat_user', JSON.stringify(user));
+    this.router.navigate(['/chat']);
   }
 
   loginWithGoogle(): void {

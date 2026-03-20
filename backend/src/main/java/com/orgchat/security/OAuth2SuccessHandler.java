@@ -102,9 +102,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         refreshCookie.setMaxAge(7 * 24 * 60 * 60);
         response.addCookie(refreshCookie);
 
-        // Redirect to frontend with token
-        String redirectUrl = frontendRedirectUrl + "?token=" + authResponse.getToken() + "&merID=" + user.getMerID();
-        log.info("Redirecting to frontend: {}", frontendRedirectUrl + "?token=***&merID=" + user.getMerID());
+        // Redirect to frontend with token and user info
+        String redirectUrl = frontendRedirectUrl
+                + "?token=" + authResponse.getToken()
+                + "&merID=" + user.getMerID()
+                + "&email=" + java.net.URLEncoder.encode(email, java.nio.charset.StandardCharsets.UTF_8)
+                + "&displayName=" + java.net.URLEncoder.encode(name != null ? name : "", java.nio.charset.StandardCharsets.UTF_8);
+        log.info("Redirecting to frontend: {}?token=***&merID={}", frontendRedirectUrl, user.getMerID());
         response.sendRedirect(redirectUrl);
     }
 
