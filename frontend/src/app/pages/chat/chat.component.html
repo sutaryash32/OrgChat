@@ -6,7 +6,6 @@
         <div class="avatar">{{ currentUser?.displayName?.charAt(0)?.toUpperCase() || '?' }}</div>
         <div class="user-details">
           <span class="user-name">{{ currentUser?.displayName }}</span>
-          <span class="user-merid">{{ currentUser?.merID }}</span>
         </div>
       </div>
       <button class="icon-btn" (click)="logout()" title="Logout">
@@ -29,7 +28,6 @@
           <div class="contact-avatar">{{ user.displayName.charAt(0).toUpperCase() }}</div>
           <div class="contact-info">
             <span class="contact-name">{{ user.displayName }}</span>
-            <span class="contact-merid">{{ user.merID }}</span>
           </div>
         </div>
       }
