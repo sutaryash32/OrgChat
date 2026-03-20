@@ -17,7 +17,8 @@ public class JwtUtil {
 
     private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
 
-    private final SecretKey key;
+    private final String secret;
+    private SecretKey key;
 
     @Value("${app.jwt.expiration-ms:86400000}")
     private long expirationMs;
@@ -26,17 +27,21 @@ public class JwtUtil {
     private long refreshExpirationMs;
 
     public JwtUtil(@Value("${app.jwt.secret}") String secret) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
-        log.info("JwtUtil initialized");
+        this.secret = secret;
     }
 
     @PostConstruct
     public void validateSecretStrength() {
-        // HS256 requires at least 256-bit key material.
-        int keyLength = key.getEncoded().length;
-        if (keyLength < 32) {
-            throw new IllegalStateException("JWT secret must be at least 32 bytes");
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET is required. Set environment variable JWT_SECRET with at least 32 characters.");
         }
+
+        if (secret.length() < 32) {
+            throw new IllegalStateException("JWT_SECRET must be at least 32 characters.");
+        }
+
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        log.info("JwtUtil initialized");
     }
 
     public String generateToken(String merID, String email) {
