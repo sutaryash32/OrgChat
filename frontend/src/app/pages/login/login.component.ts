@@ -23,7 +23,7 @@ import { AuthService } from '../../core/auth.service';
             </svg>
           </div>
           <h1 class="app-title">OrgChat</h1>
-          <p class="app-subtitle">Secure media sharing & messaging for your organization</p>
+          <p class="app-subtitle">Secure media sharing & messaging — Prototype</p>
         </div>
 
         <button class="sso-button" (click)="loginWithGoogle()" id="sso-login-btn">
@@ -33,16 +33,16 @@ import { AuthService } from '../../core/auth.service';
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          Sign in with Google SSO
+          Sign in with Google
         </button>
 
         <div class="divider">
-          <span>Powered by merID</span>
+          <span>Prototype — merID</span>
         </div>
 
         <p class="footer-text">
-          Your company email becomes your identity.<br>
-          <strong>john.doe&#64;company.com → john.doe</strong>
+          Sign in with your Google account.<br>
+          <strong>sutaryash32&#64;gmail.com → sutaryash32</strong>
         </p>
       </div>
 

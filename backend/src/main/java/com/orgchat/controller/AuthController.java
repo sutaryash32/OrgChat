@@ -3,6 +3,8 @@ package com.orgchat.controller;
 import com.orgchat.dto.AuthResponse;
 import com.orgchat.model.User;
 import com.orgchat.service.AuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -13,43 +15,47 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
-    /**
-     * SSO login is handled by Spring Security OAuth2 flow.
-     * This endpoint initiates the redirect to Google.
-     */
     @PostMapping("/sso/login")
     public ResponseEntity<Map<String, String>> ssoLogin() {
+        log.info("SSO login initiated — redirecting to Google OAuth2");
         return ResponseEntity.ok(Map.of(
                 "redirectUrl", "/oauth2/authorization/google"
         ));
     }
 
-    /**
-     * Refresh an expired JWT token.
-     */
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@RequestBody Map<String, String> body) {
         String token = body.get("token");
         if (token == null || token.isBlank()) {
+            log.warn("Token refresh failed — no token provided in request body");
             return ResponseEntity.badRequest().build();
         }
-        AuthResponse response = authService.refreshToken(token);
-        return ResponseEntity.ok(response);
+        log.info("Token refresh request received");
+        try {
+            AuthResponse response = authService.refreshToken(token);
+            log.info("Token refresh successful for merID: {}", response.getMerID());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Token refresh failed: {}", e.getMessage());
+            return ResponseEntity.status(401).build();
+        }
     }
 
-    /**
-     * Logout — invalidate session.
-     */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@AuthenticationPrincipal User user) {
         if (user != null) {
+            log.info("Logout request from user: {}", user.getMerID());
             authService.logout(user.getMerID());
+        } else {
+            log.warn("Logout request with no authenticated user");
         }
         return ResponseEntity.ok().build();
     }

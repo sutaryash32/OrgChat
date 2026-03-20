@@ -5,6 +5,8 @@ import com.orgchat.dto.MessageResponse;
 import com.orgchat.model.User;
 import com.orgchat.service.MessageService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/messages")
 public class MessageController {
+
+    private static final Logger log = LoggerFactory.getLogger(MessageController.class);
 
     private final MessageService messageService;
 
@@ -24,15 +28,29 @@ public class MessageController {
     public ResponseEntity<MessageResponse> sendMessage(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody MessageRequest request) {
-        MessageResponse response = messageService.sendMessage(user.getMerID(), request);
-        return ResponseEntity.ok(response);
+        log.info("POST /api/messages/send — from: '{}' to: '{}'", user.getMerID(), request.getRecipientId());
+        try {
+            MessageResponse response = messageService.sendMessage(user.getMerID(), request);
+            log.info("Message sent successfully — id: {}", response.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Message send failed from '{}': {}", user.getMerID(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<MessageResponse> getMessageById(@PathVariable String id) {
+        log.debug("GET /api/messages/{}", id);
         return messageService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(msg -> {
+                    log.debug("Message found: {}", id);
+                    return ResponseEntity.ok(msg);
+                })
+                .orElseGet(() -> {
+                    log.warn("Message not found: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     @GetMapping("/conversation")
@@ -41,12 +59,15 @@ public class MessageController {
             @RequestParam String withUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
+        log.info("GET /api/messages/conversation — '{}' with '{}' (page: {}, size: {})",
+                user.getMerID(), withUser, page, size);
         return ResponseEntity.ok(
                 messageService.getConversation(user.getMerID(), withUser, page, size));
     }
 
     @GetMapping("/unread/count")
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal User user) {
+        log.debug("GET /api/messages/unread/count for '{}'", user.getMerID());
         return ResponseEntity.ok(messageService.getUnreadCount(user.getMerID()));
     }
 }

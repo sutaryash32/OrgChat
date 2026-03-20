@@ -1,74 +1,96 @@
 package com.orgchat.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Map;
 
 @Component
 public class JwtUtil {
 
-    private final SecretKey key;
-    private final long expirationMs;
-    private final long refreshExpirationMs;
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
 
-    public JwtUtil(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-ms}") long expirationMs,
-            @Value("${app.jwt.refresh-expiration-ms}") long refreshExpirationMs) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
-        this.refreshExpirationMs = refreshExpirationMs;
+    private final SecretKey key;
+
+    @Value("${app.jwt.expiration-ms:86400000}")
+    private long expirationMs;
+
+    @Value("${app.jwt.refresh-expiration-ms:604800000}")
+    private long refreshExpirationMs;
+
+    public JwtUtil(@Value("${app.jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        log.info("JwtUtil initialized");
     }
 
     public String generateToken(String merID, String email) {
-        return buildToken(merID, email, expirationMs);
+        String token = Jwts.builder()
+                .claim("email", email)
+                .subject(merID)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(key)
+                .compact();
+        log.info("JWT generated for merID: '{}', expires in: {}ms", merID, expirationMs);
+        return token;
     }
 
     public String generateRefreshToken(String merID, String email) {
-        return buildToken(merID, email, refreshExpirationMs);
-    }
-
-    private String buildToken(String merID, String email, long expiry) {
-        Date now = new Date();
-        return Jwts.builder()
-                .claims(Map.of("email", email))
+        String token = Jwts.builder()
+                .claim("email", email)
                 .subject(merID)
-                .issuedAt(now)
-                .expiration(new Date(now.getTime() + expiry))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
                 .signWith(key)
                 .compact();
+        log.debug("Refresh token generated for merID: '{}'", merID);
+        return token;
     }
 
-    public Claims extractClaims(String token) {
+    public String extractMerID(String token) {
+        try {
+            String merID = getClaims(token).getSubject();
+            log.debug("Extracted merID from token: '{}'", merID);
+            return merID;
+        } catch (ExpiredJwtException e) {
+            log.warn("Token expired, extracting merID from expired claims");
+            return e.getClaims().getSubject();
+        } catch (Exception e) {
+            log.error("Failed to extract merID from token: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            getClaims(token);
+            log.debug("JWT validated successfully");
+            return true;
+        } catch (ExpiredJwtException e) {
+            log.warn("JWT expired at: {}", e.getClaims().getExpiration());
+        } catch (UnsupportedJwtException e) {
+            log.error("Unsupported JWT: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            log.error("Malformed JWT: {}", e.getMessage());
+        } catch (SecurityException e) {
+            log.error("JWT signature validation failed: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    public String extractMerID(String token) {
-        return extractClaims(token).getSubject();
-    }
-
-    public String extractEmail(String token) {
-        return extractClaims(token).get("email", String.class);
-    }
-
-    public boolean isTokenValid(String token) {
-        try {
-            Claims claims = extractClaims(token);
-            return !claims.getExpiration().before(new Date());
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     public long getExpirationMs() {
