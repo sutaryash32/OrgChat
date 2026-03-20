@@ -8,6 +8,17 @@
           <span class="user-name">{{ currentUser?.displayName }}</span>
         </div>
       </div>
+      <button class="icon-btn" (click)="toggleTheme()" title="Toggle theme">
+        @if (isDarkTheme) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        }
+      </button>
       <button class="icon-btn" (click)="logout()" title="Logout">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
@@ -24,8 +35,11 @@
 
     <div class="contacts-list">
       @for (user of filteredUsers; track user.merID) {
-        <div class="contact-item" [class.active]="selectedUser?.merID === user.merID" (click)="selectUser(user)">
-          <div class="contact-avatar">{{ user.displayName.charAt(0).toUpperCase() }}</div>
+        <div class="contact-item" [class.active]="selectedUser?.merID === user.merID" [class.has-unread]="false" (click)="selectUser(user)">
+          <div class="contact-avatar">
+            {{ user.displayName.charAt(0).toUpperCase() }}
+            <div class="unread-dot"></div>
+          </div>
           <div class="contact-info">
             <span class="contact-name">{{ user.displayName }}</span>
           </div>
@@ -40,23 +54,96 @@
   </aside>
 
   <!-- Chat area -->
-  <main class="chat-area">
+  <main class="chat-area" [class.contact-selected]="selectedUser !== null">
     @if (selectedUser) {
       <div class="chat-header">
         <span>{{ selectedUser.displayName }}</span>
       </div>
 
-      <div class="messages-container">
-        @for (msg of messages; track msg.id) {
-          <div class="message" [class.sent]="msg.senderId === currentUser?.merID">
-            <div class="message-bubble">{{ msg.content }}</div>
-          </div>
+      <div class="messages-container" [class.loading]="isLoading()">
+        @if (isLoading()) {
+          <!-- Skeleton loading -->
+          @for (skeleton of [1,2,3,4]; track $index) {
+            <div class="skeleton-message" [class.sent]="$index % 2 === 0">
+              <div class="skeleton-bubble"></div>
+            </div>
+          }
+        } @else {
+          @for (msg of messages; track msg.id) {
+            <div
+              class="message"
+              [class.sent]="msg.senderId === currentUser?.merID"
+              [class.received]="msg.senderId !== currentUser?.merID"
+              [class.menu-open]="activeMenuMessageId() === msg.id"
+              [class.removing]="removingMessageIds().has(msg.id)"
+              [attr.data-message-id]="msg.id"
+            >
+              <div class="message-bubble" [class.just-edited]="justEditedId() === msg.id" [class.editing]="editingMessageId === msg.id">
+                <p class="message-text">{{ msg.content }}</p>
+              </div>
+
+              @if (msg.senderId === currentUser?.merID) {
+                <button
+                  class="message-menu-btn"
+                  [class.active]="activeMenuMessageId() === msg.id"
+                  (click)="toggleMenu(msg.id, $event)"
+                  title="Message options"
+                  aria-label="Message options"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                  </svg>
+                </button>
+
+                @if (activeMenuMessageId() === msg.id) {
+                  <div class="message-dropdown">
+                    <button class="message-dropdown-item" (click)="startEdit(msg); $event.stopPropagation()">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                    <button class="message-dropdown-item delete" (click)="deleteMessage(msg.id); $event.stopPropagation()">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          }
         }
       </div>
 
-      <div class="message-input-area">
-        <input type="text" [(ngModel)]="messageContent" placeholder="Type a message..." (keyup.enter)="sendMessage()"/>
-        <button (click)="sendMessage()">Send</button>
+      <div class="message-input-area" [class.editing]="isEditing()">
+        @if (isEditing()) {
+          <div class="edit-banner">
+            <span>Editing message</span>
+            <button class="cancel-edit-btn" (click)="cancelEdit()" title="Cancel edit">✕</button>
+          </div>
+        }
+        <input type="text" [(ngModel)]="messageContent" placeholder="Type a message..." (keyup.enter)="isEditing() ? submitEdit() : sendMessage()"/>
+        @if (isEditing()) {
+          <button class="send-btn edit-send" (click)="submitEdit()" title="Save edit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6a6 6 0 0 1-7.397 5.83c-.038-.773-.167-2.65-.607-5.83H20zm0 0v6a6 6 0 0 1-9.197 4.904c1.488 1.281 2.243 1.542 3.698 1.899V22l-4.5-2.5-4.5 2.5v-5.197c1.455-.357 2.21-.618 3.698-1.899A6 6 0 0 1 4 12V6z"/>
+            </svg>
+          </button>
+        } @else {
+          <button class="send-btn" (click)="sendMessage()" title="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        }
       </div>
     } @else {
       <div class="empty-state">Select a contact to start chatting</div>

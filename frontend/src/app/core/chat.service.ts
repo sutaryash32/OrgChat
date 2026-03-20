@@ -28,4 +28,12 @@ export class ChatService {
   getUnreadCount(): Observable<{ unreadCount: number }> {
     return this.http.get<{ unreadCount: number }>(`${this.apiUrl}/unread/count`);
   }
+
+  editMessage(messageId: string, content: string): Observable<Message> {
+    return this.http.put<Message>(`${this.apiUrl}/${messageId}`, { content });
+  }
+
+  deleteMessage(messageId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${messageId}`);
+  }
 }

@@ -23,6 +23,7 @@ export interface Message {
   mediaId?: string;
   timestamp: string;
   read: boolean;
+  action?: 'SEND' | 'EDIT' | 'DELETE';
 }
 
 export interface Media {

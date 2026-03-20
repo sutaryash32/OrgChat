@@ -11,6 +11,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/messages")
 public class MessageController {
@@ -68,5 +70,44 @@ public class MessageController {
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal String merID) {
         log.debug("GET /api/messages/unread/count for '{}'", merID);
         return ResponseEntity.ok(messageService.getUnreadCount(merID));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> editMessage(
+            @PathVariable String id,
+            @AuthenticationPrincipal String merID,
+            @RequestBody Map<String, String> request) {
+        log.info("PUT /api/messages/{} — from: '{}'", id, merID);
+        try {
+            String newContent = request.get("content");
+            if (newContent == null || newContent.isBlank()) {
+                return ResponseEntity.badRequest().body("Content cannot be empty");
+            }
+            MessageResponse response = messageService.editMessage(id, merID, newContent);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Edit failed for message '{}': {}", id, e.getMessage());
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Edit failed for message '{}': {}", id, e.getMessage(), e);
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteMessage(
+            @PathVariable String id,
+            @AuthenticationPrincipal String merID) {
+        log.info("DELETE /api/messages/{} — from: '{}'", id, merID);
+        try {
+            messageService.deleteMessage(id, merID);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.error("Delete failed for message '{}': {}", id, e.getMessage());
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Delete failed for message '{}': {}", id, e.getMessage(), e);
+            return ResponseEntity.notFound().build();
+        }
     }
 }

@@ -12,6 +12,20 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
 }
 
 .sidebar-header {
@@ -97,23 +111,68 @@
   overflow-y: auto;
 }
 
+.contacts-list::-webkit-scrollbar-thumb {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.contacts-list:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
 .contact-item {
   padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  position: relative;
 }
 
 .contact-item:hover {
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: var(--accent-hover);
+  transform: translateX(6px);
+  border-left: 3px solid var(--accent-primary);
 }
 
 .contact-item.active {
-  background-color: rgba(99, 102, 241, 0.2);
+  background-color: var(--accent-hover);
   border-left: 3px solid var(--accent-primary);
+}
+
+.contact-item .unread-dot {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  border: 2px solid var(--bg-secondary);
+  opacity: 0;
+  animation: dotPulse 0.4s ease-out 1;
+}
+
+.contact-item.has-unread .unread-dot {
+  opacity: 1;
+}
+
+.contact-item.has-unread .contact-avatar {
+  animation: avatarPulse 0.4s ease 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes avatarPulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.15);
+    }
+  }
 }
 
 .contact-avatar {
@@ -166,12 +225,13 @@
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 500;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .nav-btn:hover {
   background-color: var(--accent-primary);
   color: white;
+  transform: translateY(-2px);
 }
 
 .chat-area {
@@ -181,11 +241,29 @@
   background-color: var(--bg-primary);
 }
 
+.chat-area.contact-selected {
+  animation: fadeSlideIn 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
 .chat-header {
   padding: 16px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .messages-container {
@@ -197,23 +275,46 @@
   gap: 12px;
 }
 
+.messages-container::-webkit-scrollbar-thumb {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.messages-container:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
 .message {
   display: flex;
   margin-bottom: 8px;
+  overflow: hidden;
+  transition: max-height 0.25s ease-in;
+  max-height: 200px;
+}
+
+.message.removing {
+  max-height: 0;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateX(20px);
 }
 
 .message.sent {
   justify-content: flex-end;
+  position: relative;
 }
 
 .message.sent .message-bubble {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--bubble-sent);
   color: white;
+  animation: slideInRight 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .message.received .message-bubble {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background-color: var(--bubble-received);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  animation: slideInLeft 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .message-bubble {
@@ -222,6 +323,7 @@
   border-radius: 8px;
   word-break: break-word;
   font-size: 0.95rem;
+  position: relative;
 }
 
 .message-input-area {
@@ -240,6 +342,79 @@
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-input-area input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.message-input-area.editing {
+  border-top: 2px solid var(--accent-primary);
+}
+
+.message-input-area.editing input {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.send-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+}
+
+.send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}
+
+.send-btn:active {
+  transform: scale(0.9);
+}
+
+.send-btn.edit-send svg {
+  stroke-width: 2.5;
+}
+
+.edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  font-size: 0.85rem;
+  color: var(--accent-primary);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.cancel-edit-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--accent-primary);
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.cancel-edit-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
 }
 
 .message-input-area button {
@@ -254,8 +429,294 @@
 }
 
 .message-input-area button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px var(--accent-hover);
+}
+
+.message-input-area button:active {
+  transform: scale(0.93);
+  transition: transform 0.1s ease;
+}
+
+/* === Message Animations === */
+*,
+*::before,
+*::after {
+  transition: all 0.2s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+@keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-40px);
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes collapseOut {
+    from {
+      max-height: 200px;
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      max-height: 0;
+      opacity: 0;
+      transform: translateX(20px);
+    }
+  }
+
+  @keyframes dropdownIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes dropdownOut {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  @keyframes editPulse {
+    0% { box-shadow: none; }
+    30% { box-shadow: 0 0 0 3px var(--accent-primary); }
+    100% { box-shadow: none; }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes dotPulse {
+    from {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.8);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes conversationOut {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+  }
+
+  @keyframes conversationIn {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes searchResultIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Legacy */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+.message-bubble {
+  animation: slideInUp 0.25s ease-out;
+}
+
+.message-bubble.deleting {
+  animation: slideOutUp 0.2s ease-in forwards;
+}
+
+.message-bubble.edited {
+  animation: editFlash 0.5s ease;
+}
+
+.message-actions {
+  position: absolute;
+  top: -40px;
+  right: -8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, pointer-events 0.2s;
+}
+
+.message.sent:hover .message-actions {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.message-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0.75rem;
+  transition: opacity 0.2s, transform 0.15s, background 0.2s;
+}
+
+.menu-dot {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.menu-dot:hover,
+.message-bubble:hover .menu-dot {
+  color: white;
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.1);
+}
+
+.message-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  min-width: 120px;
+  z-index: 50;
+  animation: dropdownIn 0.15s ease-out;
+  margin-top: 4px;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.dropdown-item svg {
+  flex-shrink: 0;
+}
+
+.message-bubble.editing {
+  border: 1px solid var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-hover);
+}
+
+.message-bubble.just-edited {
+  animation: editPulse 0.6s ease;
+}
+
+.skeleton-message {
+  opacity: 0.6;
+}
+
+.skeleton-message.sent {
+  justify-content: flex-end;
+}
+
+.skeleton-bubble {
+  max-width: 55%;
+  height: 40px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-message.received .skeleton-bubble {
+  margin-left: 20%;
+}
+
+.messages-container.loading {
+  animation: conversationOut 0.15s ease-out;
 }
 
 .empty-state {
@@ -266,4 +727,223 @@
   justify-content: center;
   color: var(--text-secondary);
   font-size: 1.1rem;
+  animation: fadeInUp 0.35s ease-out;
+}
+
+.empty-chat {
+  animation: fadeInUp 0.35s ease-out;
+}
+
+.no-chat-selected {
+  animation: fadeIn 0.3s ease;
+}
+
+.file-preview {
+  animation: slideInRight 0.2s ease-out;
+}
+
+/* Message layout and menu fixes */
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  scroll-behavior: smooth;
+}
+
+.message {
+  display: flex;
+  width: 100%;
+  margin-bottom: 6px;
+  position: relative;
+  align-items: flex-end;
+  overflow: visible;
+  z-index: 1;
+}
+
+.message.sent {
+  justify-content: flex-end;
+}
+
+.message.received {
+  justify-content: flex-start;
+}
+
+.message.menu-open {
+  z-index: 100;
+}
+
+.message.removing {
+  max-height: none;
+  margin-bottom: 6px;
+  opacity: 1;
+  transform: none;
+}
+
+.message-bubble {
+  position: relative;
+  max-width: 65%;
+  min-width: 60px;
+  width: fit-content;
+  padding: 10px 14px;
+  border-radius: 16px;
+  word-break: break-word;
+  overflow: visible;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.message-text {
+  margin: 0;
+}
+
+.sent .message-bubble {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 16px 16px 4px 16px;
+  color: #ffffff;
+  align-self: flex-end;
+}
+
+.received .message-bubble {
+  background: var(--bubble-received);
+  border-radius: 16px 16px 16px 4px;
+  color: var(--text-primary);
+  align-self: flex-end;
+  border: 1px solid var(--border);
+}
+
+.message-menu-btn {
+  position: absolute;
+  top: 6px;
+  right: -28px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  z-index: 10;
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+
+.message-bubble:hover + .message-menu-btn,
+.message-menu-btn:hover,
+.message-menu-btn.active {
+  opacity: 1;
+}
+
+.message-menu-btn.active {
+  background: var(--accent-hover);
+}
+
+.message-dropdown {
+  position: absolute;
+  top: 28px;
+  right: -28px;
+  z-index: 1000;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  min-width: 130px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: dropdownIn 0.15s ease-out both;
+}
+
+.message-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: background 0.15s ease;
+  border: none;
+  background: none;
+  width: 100%;
+}
+
+.message-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.message-dropdown-item.delete {
+  color: #f87171;
+}
+
+.message-dropdown-item.delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.message.removing .message-bubble {
+  animation: collapseOut 0.22s ease-in both;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sent .message-bubble {
+  animation: slideInRight 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.received .message-bubble {
+  animation: slideInLeft 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  @keyframes collapseOut {
+    from {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      max-height: 200px;
+    }
+    to {
+      opacity: 0;
+      transform: translateX(16px) scale(0.95);
+      max-height: 0;
+    }
+  }
+
+  @keyframes dropdownIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 }

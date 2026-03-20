@@ -20,4 +20,8 @@ public class MessageResponse {
     private String mediaId;
     private Instant timestamp;
     private boolean read;
+    private boolean isEdited;
+    
+    @Builder.Default
+    private String action = "SEND";
 }

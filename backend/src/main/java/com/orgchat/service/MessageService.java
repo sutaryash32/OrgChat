@@ -140,4 +140,75 @@ public class MessageService {
                 .read(message.isRead())
                 .build();
     }
+
+    public MessageResponse editMessage(String messageId, String requesterMerID, String newContent) {
+        log.info("Editing message '{}' by '{}'", messageId, requesterMerID);
+
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> {
+                    log.error("Message not found: {}", messageId);
+                    return new RuntimeException("Message not found");
+                });
+
+        if (!message.getSenderId().equals(requesterMerID)) {
+            log.error("Unauthorized edit attempt: requester '{}' is not sender '{}'", requesterMerID, message.getSenderId());
+            throw new IllegalArgumentException("Only the original sender can edit this message");
+        }
+
+        message.setContent(newContent);
+        message.setEdited(true);
+        Message updated = messageRepository.save(message);
+        log.info("Message '{}' edited successfully", messageId);
+
+        Map<String, String> senderDisplayNames = resolveDisplayNames(Set.of(updated.getSenderId()));
+        MessageResponse response = toResponse(updated, senderDisplayNames);
+        response.setAction("EDIT");
+
+        // Broadcast edit to both sender and recipient
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    message.getRecipientId(),
+                    "/queue/messages",
+                    response);
+            log.debug("Edit broadcast to recipient: {}", message.getRecipientId());
+        } catch (Exception e) {
+            log.error("WebSocket delivery failed for user '{}': {}", message.getRecipientId(), e.getMessage(), e);
+        }
+
+        return response;
+    }
+
+    public void deleteMessage(String messageId, String requesterMerID) {
+        log.info("Deleting message '{}' by '{}'", messageId, requesterMerID);
+
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> {
+                    log.error("Message not found: {}", messageId);
+                    return new RuntimeException("Message not found");
+                });
+
+        if (!message.getSenderId().equals(requesterMerID)) {
+            log.error("Unauthorized delete attempt: requester '{}' is not sender '{}'", requesterMerID, message.getSenderId());
+            throw new IllegalArgumentException("Only the original sender can delete this message");
+        }
+
+        messageRepository.deleteById(messageId);
+        log.info("Message '{}' deleted successfully", messageId);
+
+        // Broadcast delete to both sender and recipient
+        MessageResponse response = MessageResponse.builder()
+                .id(messageId)
+                .action("DELETE")
+                .build();
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    message.getRecipientId(),
+                    "/queue/messages",
+                    response);
+            log.debug("Delete broadcast to recipient: {}", message.getRecipientId());
+        } catch (Exception e) {
+            log.error("WebSocket delivery failed for user '{}': {}", message.getRecipientId(), e.getMessage(), e);
+        }
+    }
 }
