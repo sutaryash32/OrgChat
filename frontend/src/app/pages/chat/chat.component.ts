@@ -8,7 +8,7 @@ import { ChatService } from '../../core/chat.service';
 import { UserService } from '../../core/user.service';
 import { MediaService } from '../../core/media.service';
 import { WebSocketService } from '../../core/websocket.service';
-import { Message, User, UserSummary, Media } from '../../core/models';
+import { Message, User, UserSummary, Media, ConversationSummary } from '../../core/models';
 
 @Component({
   selector: 'app-chat',
@@ -26,13 +26,15 @@ export class ChatComponent implements OnInit, OnDestroy {
   private router = inject(Router);
 
   currentUser: User | null = null;
-  users: UserSummary[] = [];
-  filteredUsers: UserSummary[] = [];
+  conversations: ConversationSummary[] = [];
+  filteredConversations: ConversationSummary[] = [];
   selectedUser: UserSummary | null = null;
   messages: Message[] = [];
   messageContent = '';
   searchQuery = '';
-  searchError = false;
+  isSearching = false;
+  searchResult: User | null = null;
+  searchNotFound = false;
   isDarkTheme = true;
   editingMessageId: string | null = null;
   editingContent = '';
@@ -46,6 +48,8 @@ export class ChatComponent implements OnInit, OnDestroy {
   mediaCache: Record<string, Media> = {};
   isMultiSelectMode = false;
   selectedRecipients = new Set<string>();
+  deleteConfirmMerID: string | null = null;
+  deletingMerID: string | null = null;
   showToast = false;
   toastMessage = '';
   isUploading = false;
@@ -69,53 +73,13 @@ export class ChatComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Load inbox — populate sidebar with existing conversations
+    this.loadInbox();
+
     this.webSocketService.connect();
     this.subscriptions.push(
       this.webSocketService.messages$.subscribe(msg => {
-        const isFromMe = msg.senderId === this.currentUser?.merID;
-        const otherUserMerID = isFromMe ? msg.recipientId : msg.senderId;
-
-        // Handle different message actions
-        if (msg.action === 'EDIT') {
-          if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
-            const messageIndex = this.messages.findIndex(m => m.id === msg.id);
-            if (messageIndex !== -1) {
-              this.messages[messageIndex].content = msg.content;
-            }
-          }
-        } else if (msg.action === 'DELETE') {
-          if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
-            this.messages = this.messages.filter(m => m.id !== msg.id);
-          }
-        } else {
-          // 1. Only push to screen if we are currently looking at their chat
-          if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
-            this.messages.push(msg);
-            // Load media metadata if message has media
-            if (msg.mediaId && !this.mediaCache[msg.mediaId]) {
-              this.loadMediaForMessage(msg);
-            }
-          }
-
-          // 2. Dynamically add to sidebar if they aren't there!
-          const existingSidebarUser = this.users.find(u => u.merID === otherUserMerID);
-          if (!existingSidebarUser) {
-            this.userService.getUserByMerID(otherUserMerID).subscribe({
-              next: (user) => {
-                const summary: UserSummary = {
-                  merID: user.merID,
-                  displayName: user.displayName,
-                  avatarUrl: user.avatarUrl
-                };
-                this.users.unshift(summary);
-                if (!this.searchQuery) {
-                  this.filteredUsers = [...this.users];
-                }
-              },
-              error: (err) => console.error('Failed to fetch new sender profile', err)
-            });
-          }
-        }
+        this.handleIncomingMessage(msg);
       })
     );
   }
@@ -125,36 +89,164 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.webSocketService.disconnect();
   }
 
-  filterUsers(): void {
-    this.searchError = false;
+  loadInbox(): void {
+    this.chatService.getInbox().subscribe({
+      next: (convs) => {
+        this.conversations = convs;
+        this.filteredConversations = [...convs];
+      },
+      error: (err) => {
+        console.error('Failed to load inbox:', err);
+        this.conversations = [];
+        this.filteredConversations = [];
+      }
+    });
+  }
+
+  selectConversation(summary: ConversationSummary): void {
+    this.selectedUser = {
+      merID: summary.partnerMerID,
+      displayName: summary.partnerDisplayName,
+      avatarUrl: summary.partnerAvatarUrl
+    };
+    this.messages = [];
+    this.messageContent = '';
+    this.isLoading.set(true);
+    this.loadConversation();
+
+    // Reset unread count and mark messages as read
+    const convIndex = this.conversations.findIndex(c => c.partnerMerID === summary.partnerMerID);
+    if (convIndex !== -1) {
+      this.conversations[convIndex].unreadCount = 0;
+      this.filteredConversations = [...this.conversations];
+    }
+  }
+
+  searchByMerID(): void {
     const query = this.searchQuery.trim().toLowerCase();
-
-    if (!query) return;
-
-    // Local check first
-    const existing = this.filteredUsers.find(u => u.merID.toLowerCase() === query);
-    if (existing) {
-      this.selectUser(existing);
+    if (!query) {
+      this.searchResult = null;
+      this.searchNotFound = false;
       return;
     }
 
-    // Explicit merID search
+    this.isSearching = true;
     this.userService.getUserByMerID(query).subscribe({
       next: (user: User) => {
-        const summary: UserSummary = {
-          merID: user.merID,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl
-        };
-        this.users.unshift(summary);
-        this.filteredUsers = [...this.users];
-        this.selectUser(summary);
-        this.searchQuery = '';
+        this.searchResult = user;
+        this.searchNotFound = false;
+        this.isSearching = false;
+
+        // Check if user already in conversations
+        const existing = this.conversations.find(c => c.partnerMerID === user.merID);
+        if (!existing) {
+          // Add temporarily for selection
+          const newConv: ConversationSummary = {
+            partnerMerID: user.merID,
+            partnerDisplayName: user.displayName,
+            partnerAvatarUrl: user.avatarUrl,
+            lastMessage: '',
+            lastTimestamp: new Date().toISOString(),
+            unreadCount: 0
+          };
+          this.conversations.unshift(newConv);
+        }
+
+        // Auto-select the user
+        this.selectConversation(existing || {
+          partnerMerID: user.merID,
+          partnerDisplayName: user.displayName,
+          partnerAvatarUrl: user.avatarUrl,
+          lastMessage: '',
+          lastTimestamp: new Date().toISOString(),
+          unreadCount: 0
+        });
       },
-      error: (err: any) => {
-        this.searchError = true;
+      error: (err) => {
+        this.searchResult = null;
+        this.searchNotFound = true;
+        this.isSearching = false;
       }
     });
+  }
+
+  filterConversations(): void {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) {
+      this.filteredConversations = [...this.conversations];
+    } else {
+      this.filteredConversations = this.conversations.filter(c =>
+        c.partnerDisplayName.toLowerCase().includes(query) ||
+        c.partnerMerID.toLowerCase().includes(query)
+      );
+    }
+  }
+
+  handleIncomingMessage(msg: Message): void {
+    const isFromMe = msg.senderId === this.currentUser?.merID;
+    const otherUserMerID = isFromMe ? msg.recipientId : msg.senderId;
+
+    // Handle message actions
+    if (msg.action === 'EDIT') {
+      if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+        const messageIndex = this.messages.findIndex(m => m.id === msg.id);
+        if (messageIndex !== -1) {
+          this.messages[messageIndex].content = msg.content;
+        }
+      }
+    } else if (msg.action === 'DELETE') {
+      if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+        this.messages = this.messages.filter(m => m.id !== msg.id);
+      }
+    } else {
+      // New/regular message
+      // Push to screen if viewing this conversation
+      if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+        this.messages.push(msg);
+        if (msg.mediaId && !this.mediaCache[msg.mediaId]) {
+          this.loadMediaForMessage(msg);
+        }
+      } else if (!isFromMe) {
+        // Increment unread count if not viewing conversation and not from me
+        const convIndex = this.conversations.findIndex(c => c.partnerMerID === otherUserMerID);
+        if (convIndex !== -1) {
+          this.conversations[convIndex].unreadCount++;
+        }
+      }
+
+      // Update or add conversation to inbox
+      const existingConv = this.conversations.find(c => c.partnerMerID === otherUserMerID);
+      if (existingConv) {
+        // Update existing conversation
+        existingConv.lastMessage = msg.content || (msg.mediaId ? '📎 Media' : '');
+        existingConv.lastMediaId = msg.mediaId;
+        existingConv.lastTimestamp = msg.timestamp;
+        // Move to top
+        this.conversations = [
+          existingConv,
+          ...this.conversations.filter(c => c.partnerMerID !== otherUserMerID)
+        ];
+      } else if (!isFromMe) {
+        // New sender not in inbox — add them
+        this.userService.getUserByMerID(otherUserMerID).subscribe({
+          next: (user) => {
+            const newConv: ConversationSummary = {
+              partnerMerID: user.merID,
+              partnerDisplayName: user.displayName,
+              partnerAvatarUrl: user.avatarUrl,
+              lastMessage: msg.content || (msg.mediaId ? '📎 Media' : ''),
+              lastMediaId: msg.mediaId,
+              lastTimestamp: msg.timestamp,
+              unreadCount: 1
+            };
+            this.conversations.unshift(newConv);
+            this.filteredConversations = [...this.conversations];
+          },
+          error: (err) => console.error('Failed to fetch conversation user:', err)
+        });
+      }
+      this.filteredConversations = [...this.conversations];
+    }
   }
 
   toggleMultiSelectMode(): void {
@@ -183,7 +275,8 @@ export class ChatComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Normal single contact selection
+    // This shouldn't be called in normal mode anymore — use selectConversation instead
+    // But keeping for backward compatibility
     this.selectedUser = user;
     this.messages = [];
     this.messageContent = '';
@@ -287,8 +380,33 @@ export class ChatComponent implements OnInit, OnDestroy {
   getMultiSelectNames(): string {
     return Array.from(this.selectedRecipients)
       .slice(0, 2)
-      .map(id => this.users.find(u => u.merID === id)?.displayName || id)
+      .map(id => this.conversations.find(c => c.partnerMerID === id)?.partnerDisplayName || id)
       .join(', ') + (this.selectedRecipients.size > 2 ? `, +${this.selectedRecipients.size - 2} more` : '');
+  }
+
+  createConversationFromSearchResult(): ConversationSummary {
+    if (!this.searchResult) {
+      return {
+        partnerMerID: '',
+        partnerDisplayName: '',
+        lastMessage: '',
+        lastTimestamp: new Date().toISOString(),
+        unreadCount: 0
+      };
+    }
+    return {
+      partnerMerID: this.searchResult.merID,
+      partnerDisplayName: this.searchResult.displayName,
+      partnerAvatarUrl: this.searchResult.avatarUrl,
+      lastMessage: '',
+      lastTimestamp: new Date().toISOString(),
+      unreadCount: 0
+    };
+  }
+
+  isSearchResultNew(): boolean {
+    if (!this.searchResult) return false;
+    return !this.conversations.find(c => c.partnerMerID === this.searchResult?.merID);
   }
 
   showToastMessage(message: string): void {
@@ -466,6 +584,52 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.showToastMessage('❌ Upload failed');
       }
     });
+  }
+
+  onConversationDoubleClick(summary: ConversationSummary, event: Event): void {
+    event.stopPropagation();
+    this.deleteConfirmMerID = summary.partnerMerID;
+  }
+
+  confirmDelete(): void {
+    if (!this.deleteConfirmMerID || !this.selectedUser) {
+      return;
+    }
+
+    const merIDToDelete = this.deleteConfirmMerID;
+    this.deletingMerID = merIDToDelete;
+
+    this.chatService.deleteConversation(merIDToDelete).subscribe({
+      next: () => {
+        // Remove conversation from list
+        this.conversations = this.conversations.filter(
+          c => c.partnerMerID !== merIDToDelete
+        );
+        this.filteredConversations = this.filteredConversations.filter(
+          c => c.partnerMerID !== merIDToDelete
+        );
+
+        // If currently viewing this conversation, reset to empty state
+        if (this.selectedUser?.merID === merIDToDelete) {
+          this.selectedUser = null as any;
+          this.messages = [];
+        }
+
+        this.deleteConfirmMerID = null;
+        this.deletingMerID = null;
+        this.showToastMessage('✓ Conversation deleted');
+      },
+      error: (err) => {
+        console.error('Failed to delete conversation:', err);
+        this.deletingMerID = null;
+        this.deleteConfirmMerID = null;
+        this.showToastMessage('❌ Failed to delete conversation');
+      }
+    });
+  }
+
+  cancelDelete(): void {
+    this.deleteConfirmMerID = null;
   }
 }
 

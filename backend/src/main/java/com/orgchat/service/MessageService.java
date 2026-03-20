@@ -3,6 +3,7 @@ package com.orgchat.service;
 import com.orgchat.dto.MessageRequest;
 import com.orgchat.dto.MessageResponse;
 import com.orgchat.dto.MultiMessageRequest;
+import com.orgchat.dto.ConversationSummary;
 import com.orgchat.model.Message;
 import com.orgchat.model.User;
 import com.orgchat.repository.MessageRepository;
@@ -16,11 +17,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -261,6 +258,78 @@ public class MessageService {
             log.debug("Delete broadcast to recipient: {}", message.getRecipientId());
         } catch (Exception e) {
             log.error("WebSocket delivery failed for user '{}': {}", message.getRecipientId(), e.getMessage(), e);
+        }
+    }
+
+    public List<ConversationSummary> getInbox(String merID) {
+        log.debug("Loading inbox for user: '{}'", merID);
+        List<Message> allMessages = messageRepository.findAllInvolvingUser(merID);
+
+        if (allMessages.isEmpty()) {
+            log.debug("No messages found for user: '{}'", merID);
+            return new ArrayList<>();
+        }
+
+        // Group by the other party in each conversation
+        Map<String, List<Message>> byPartner = allMessages.stream()
+                .collect(Collectors.groupingBy(m ->
+                        m.getSenderId().equals(merID) ? m.getRecipientId() : m.getSenderId()
+                ));
+
+        List<ConversationSummary> summaries = new ArrayList<>();
+
+        for (Map.Entry<String, List<Message>> entry : byPartner.entrySet()) {
+            String partnerMerID = entry.getKey();
+            List<Message> msgs = entry.getValue();
+
+            // Most recent message
+            Message last = msgs.stream()
+                    .max(Comparator.comparing(Message::getTimestamp))
+                    .orElse(null);
+
+            if (last == null) continue;
+
+            // Unread count — messages FROM partner that are unread
+            long unread = msgs.stream()
+                    .filter(m -> m.getSenderId().equals(partnerMerID) && !m.isRead())
+                    .count();
+
+            // Resolve display name and avatar
+            Optional<User> partnerUser = userRepository.findByMerID(partnerMerID);
+            String displayName = partnerUser.map(User::getDisplayName).orElse(partnerMerID);
+            String avatarUrl = partnerUser.map(User::getAvatarUrl).orElse(null);
+
+            // Last message preview text
+            String preview = (last.getContent() != null && !last.getContent().isBlank())
+                    ? last.getContent()
+                    : (last.getMediaId() != null ? "📎 Media" : "");
+
+            summaries.add(ConversationSummary.builder()
+                    .partnerMerID(partnerMerID)
+                    .partnerDisplayName(displayName)
+                    .partnerAvatarUrl(avatarUrl)
+                    .lastMessage(preview)
+                    .lastMediaId(last.getMediaId())
+                    .lastTimestamp(last.getTimestamp())
+                    .unreadCount(unread)
+                    .build());
+        }
+
+        // Sort by most recent first
+        summaries.sort(Comparator.comparing(ConversationSummary::getLastTimestamp).reversed());
+        log.debug("Inbox loaded: {} conversations for user: '{}'", summaries.size(), merID);
+        return summaries;
+    }
+
+    public void deleteConversation(String userA, String userB) {
+        log.debug("Deleting all messages between '{}' and '{}'", userA, userB);
+        List<Message> messages = messageRepository.findConversationMessages(userA, userB);
+        
+        if (!messages.isEmpty()) {
+            messageRepository.deleteAll(messages);
+            log.info("Deleted {} messages between '{}' and '{}'", messages.size(), userA, userB);
+        } else {
+            log.debug("No messages found to delete between '{}' and '{}'", userA, userB);
         }
     }
 }

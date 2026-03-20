@@ -35,9 +35,25 @@
     </div>
 
     <div class="search-box">
-      <input type="text" placeholder="Find contact by merID..." [(ngModel)]="searchQuery" (keyup.enter)="filterUsers()"/>
-      @if (searchError) {
-        <div class="search-error" style="color: #ff6b6b; font-size: 0.8rem; margin-top: 4px; padding-left: 8px;">User not found</div>
+      <input type="text"
+        placeholder="Search or add contact..."
+        [(ngModel)]="searchQuery"
+        (keyup)="filterConversations()"
+        (keyup.enter)="searchByMerID()"/>
+      @if (searchNotFound) {
+        <div class="search-not-found">User not found by merID</div>
+      }
+      @if (searchResult && isSearchResultNew()) {
+        <div class="search-result-card">
+          <div class="contact-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;">
+            {{ searchResult.displayName.charAt(0).toUpperCase() }}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 500; font-size: 0.9rem;">{{ searchResult.displayName }}</div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 2px;">{{ searchResult.merID }}</div>
+          </div>
+          <button class="add-btn" (click)="selectConversation(createConversationFromSearchResult())">Start Chat</button>
+        </div>
       }
     </div>
 
@@ -48,27 +64,65 @@
       </div>
     }
 
-    <div class="contacts-list">
-      @for (user of filteredUsers; track user.merID) {
-        <div class="contact-item"
-          [class.active]="selectedUser?.merID === user.merID"
-          [class.has-unread]="false"
-          [class.multi-selectable]="isMultiSelectMode"
-          [class.selected]="isRecipientSelected(user.merID)"
-          (click)="selectUser(user)">
-
-          @if (isMultiSelectMode) {
-            <div class="checkbox-indicator" [class.checked]="isRecipientSelected(user.merID)"></div>
+    <div class="conversations-list">
+      @if (filteredConversations.length === 0) {
+        <div class="empty-inbox">
+          @if (conversations.length === 0) {
+            <p>No conversations yet.<br/>Search for a contact by merID to start chatting.</p>
+          } @else {
+            <p>No conversations match your search.</p>
           }
-
-          <div class="contact-avatar">
-            {{ user.displayName.charAt(0).toUpperCase() }}
-            <div class="unread-dot"></div>
-          </div>
-          <div class="contact-info">
-            <span class="contact-name">{{ user.displayName }}</span>
-          </div>
         </div>
+      } @else {
+        @for (conv of filteredConversations; track conv.partnerMerID) {
+          <div class="conversation-item"
+            [class.active]="selectedUser?.merID === conv.partnerMerID"
+            [class.multi-selectable]="isMultiSelectMode"
+            [class.selected]="isRecipientSelected(conv.partnerMerID)"
+            [class.removing]="deletingMerID === conv.partnerMerID"
+            (click)="isMultiSelectMode ? selectUser({merID: conv.partnerMerID, displayName: conv.partnerDisplayName, avatarUrl: conv.partnerAvatarUrl}) : selectConversation(conv)"
+            (dblclick)="onConversationDoubleClick(conv, $event)">
+
+            @if (isMultiSelectMode) {
+              <div class="checkbox-indicator" [class.checked]="isRecipientSelected(conv.partnerMerID)"></div>
+            }
+
+            <div class="contact-avatar">
+              {{ conv.partnerDisplayName.charAt(0).toUpperCase() }}
+              @if (conv.unreadCount > 0 && !isMultiSelectMode) {
+                <div class="unread-badge">{{ conv.unreadCount }}</div>
+              }
+            </div>
+
+            <div class="conversation-preview">
+              <span class="contact-name">{{ conv.partnerDisplayName }}</span>
+              <span class="conversation-last-msg">{{ conv.lastMessage }}</span>
+            </div>
+
+            <div class="conversation-meta">
+              <span class="conversation-time">
+                @if (conv.lastTimestamp) {
+                  {{ conv.lastTimestamp | date: 'short' }}
+                }
+              </span>
+              @if (conv.unreadCount > 0 && !isMultiSelectMode) {
+                <div class="unread-badge">{{ conv.unreadCount }}</div>
+              }
+            </div>
+
+            <!-- Delete Confirmation Popover -->
+            @if (deleteConfirmMerID === conv.partnerMerID) {
+              <div class="delete-confirm-popover">
+                <div class="popover-title">Delete conversation?</div>
+                <div class="popover-text">All messages will be permanently deleted</div>
+                <div class="popover-actions">
+                  <button class="popover-delete-btn" (click)="confirmDelete()">Delete</button>
+                  <button class="popover-cancel-btn" (click)="cancelDelete()">Cancel</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
       }
     </div>
 

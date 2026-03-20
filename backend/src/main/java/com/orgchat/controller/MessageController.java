@@ -3,6 +3,7 @@ package com.orgchat.controller;
 import com.orgchat.dto.MessageRequest;
 import com.orgchat.dto.MessageResponse;
 import com.orgchat.dto.MultiMessageRequest;
+import com.orgchat.dto.ConversationSummary;
 import com.orgchat.service.MessageService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -125,6 +126,35 @@ public class MessageController {
         } catch (Exception e) {
             log.error("Delete failed for message '{}': {}", id, e.getMessage(), e);
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/inbox")
+    public ResponseEntity<List<ConversationSummary>> getInbox(
+            @AuthenticationPrincipal String merID) {
+        log.info("GET /api/messages/inbox — for user: '{}'", merID);
+        try {
+            List<ConversationSummary> inbox = messageService.getInbox(merID);
+            log.debug("Inbox loaded — {} conversations for user: '{}'", inbox.size(), merID);
+            return ResponseEntity.ok(inbox);
+        } catch (Exception e) {
+            log.error("Failed to load inbox for user '{}': {}", merID, e.getMessage(), e);
+            return ResponseEntity.ok(List.of()); // Return empty list on error
+        }
+    }
+
+    @DeleteMapping("/conversation")
+    public ResponseEntity<Void> deleteConversation(
+            @AuthenticationPrincipal String merID,
+            @RequestParam String withUser) {
+        log.info("DELETE /api/messages/conversation — user: '{}', withUser: '{}'", merID, withUser);
+        try {
+            messageService.deleteConversation(merID, withUser);
+            log.debug("Conversation deleted between '{}' and '{}'", merID, withUser);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Failed to delete conversation between '{}' and '{}': {}", merID, withUser, e.getMessage(), e);
+            return ResponseEntity.status(500).build();
         }
     }
 }

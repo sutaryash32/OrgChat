@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { Message, MultiMessageRequest } from './models';
+import { Message, MultiMessageRequest, ConversationSummary } from './models';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -45,6 +45,14 @@ export class ChatService {
 
   deleteMessage(messageId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${messageId}`);
+  }
+
+  getInbox(): Observable<ConversationSummary[]> {
+    return this.http.get<ConversationSummary[]>(`${this.apiUrl}/inbox`);
+  }
+
+  deleteConversation(withUser: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/conversation?withUser=${withUser}`);
   }
 }
 

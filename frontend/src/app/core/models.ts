@@ -47,6 +47,16 @@ export interface MultiMessageRequest {
   mediaId?: string;
 }
 
+export interface ConversationSummary {
+  partnerMerID: string;
+  partnerDisplayName: string;
+  partnerAvatarUrl?: string;
+  lastMessage: string;
+  lastMediaId?: string;
+  lastTimestamp: string;
+  unreadCount: number;
+}
+
 export interface AuthResponse {
   token: string;
   refreshToken: string;

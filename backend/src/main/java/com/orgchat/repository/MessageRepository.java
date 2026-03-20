@@ -15,6 +15,12 @@ public interface MessageRepository extends MongoRepository<Message, String> {
     @Query("{ $or: [ { 'senderId': ?0, 'recipientId': ?1 }, { 'senderId': ?1, 'recipientId': ?0 } ] }")
     Page<Message> findConversation(String userA, String userB, Pageable pageable);
 
+    @Query("{ $or: [ { 'senderId': ?0, 'recipientId': ?1 }, { 'senderId': ?1, 'recipientId': ?0 } ] }")
+    List<Message> findConversationMessages(String userA, String userB);
+
+    @Query("{ $or: [ { 'senderId': ?0 }, { 'recipientId': ?0 } ] }")
+    List<Message> findAllInvolvingUser(String merID);
+
     List<Message> findByRecipientIdAndReadFalse(String recipientId);
 
     long countByRecipientIdAndReadFalse(String recipientId);
