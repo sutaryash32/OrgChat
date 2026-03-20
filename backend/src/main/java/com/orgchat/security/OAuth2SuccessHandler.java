@@ -62,14 +62,30 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         User user;
         if (existing.isPresent()) {
             user = existing.get();
-            user.setDisplayName(name);
-            log.info("Existing user found — updating display name for: {}", user.getMerID());
+            
+            if (user.getMerID() != null && user.getMerID().length() == 24 && user.getMerID().matches("^[0-9a-fA-F]{24}$")) {
+                log.warn("Corrupted merID detected (ObjectId). Purging and recreating user for email: {}", email);
+                userRepository.delete(user);
+                
+                String merID = resolveUniqueMerID(baseMerID);
+                user = User.builder()
+                        .merID(merID)
+                        .email(email)
+                        .displayName(name != null ? name : merID)
+                        .ssoProvider(user.getSsoProvider() != null ? user.getSsoProvider() : "google")
+                        .role(user.getRole() != null ? user.getRole() : "USER")
+                        .createdAt(user.getCreatedAt() != null ? user.getCreatedAt() : Instant.now())
+                        .build();
+            } else {
+                user.setDisplayName(name != null ? name : user.getMerID());
+                log.info("Existing user found — updating display name for: {}", user.getMerID());
+            }
         } else {
             String merID = resolveUniqueMerID(baseMerID);
             user = User.builder()
                     .merID(merID)
                     .email(email)
-                    .displayName(name)
+                    .displayName(name != null ? name : merID)
                     .ssoProvider("google")
                     .role("USER")
                     .createdAt(Instant.now())
