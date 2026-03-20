@@ -1,7 +1,5 @@
 package com.orgchat.security;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,36 +37,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            log.debug("JWT Bearer token detected for URI: {}", uri);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.debug("No JWT token for: {} {}", request.getMethod(), uri);
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            try {
-                if (jwtUtil.validateToken(token)) {
-                    String merID = jwtUtil.extractMerID(token);
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(
-                                    merID, null,
-                                    List.of(new SimpleGrantedAuthority("ROLE_USER")));
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-                    log.info("Authenticated user '{}' for request: {} {}", merID, request.getMethod(), uri);
-                } else {
-                    log.warn("Invalid JWT for request: {} {} — token validation failed", request.getMethod(), uri);
-                }
-            } catch (ExpiredJwtException e) {
+        String token = authHeader.substring(7);
+        log.debug("JWT Bearer token detected for URI: {}", uri);
+
+        JwtUtil.TokenValidationResult result = jwtUtil.validateToken(token);
+
+        switch (result) {
+            case VALID -> {
+                String merID = jwtUtil.extractMerID(token);
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                merID, null,
+                                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                log.info("Authenticated user '{}' for request: {} {}", merID, request.getMethod(), uri);
+            }
+            case EXPIRED -> {
+                // Expired tokens are not authenticated but not rejected outright —
+                // let the request proceed as anonymous so /auth/refresh can still be called
                 log.info("Expired JWT for request: {} {}", request.getMethod(), uri);
                 SecurityContextHolder.clearContext();
-            } catch (JwtException | IllegalArgumentException e) {
-                String remoteIp = request.getRemoteAddr();
-                log.warn("Rejected malformed/tampered JWT from IP {} for {} {}: {}",
-                        remoteIp, request.getMethod(), uri, e.getMessage());
+            }
+            case TAMPERED, INVALID -> {
+                // Hard reject — forged or malformed tokens get a 401 immediately
+                log.warn("Rejected tampered/malformed JWT from IP={} for {} {}",
+                        request.getRemoteAddr(), request.getMethod(), uri);
                 SecurityContextHolder.clearContext();
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("Unauthorized: invalid token");
                 return;
             }
-        } else {
-            log.debug("No JWT token for: {} {}", request.getMethod(), uri);
         }
 
         filterChain.doFilter(request, response);

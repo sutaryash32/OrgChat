@@ -35,8 +35,8 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET:}
-    expiration-ms: 86400000          # 24 hours
-    refresh-expiration-ms: 604800000 # 7 days
+    expiration-ms: 86400000
+    refresh-expiration-ms: 604800000
   cors:
     allowed-origins: http://localhost:4200
   frontend:
