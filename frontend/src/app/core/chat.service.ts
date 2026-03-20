@@ -1,46 +1,31 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
-import { Message, PageResponse, User } from './models';
+import { Message } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
+  private http = inject(HttpClient);
+  private apiUrl = 'http://localhost:8080/api/messages';
 
-  constructor(private http: HttpClient) {}
-
-  /**
-   * Start a chat session with another user by their merID.
-   * Returns the recipient's user profile.
-   */
-  startChat(recipientMerID: string): Observable<User> {
-    return this.http.post<User>(`${environment.apiUrl}/chat/start/${recipientMerID}`, {});
-  }
-
-  /**
-   * Send a message to a recipient by merID.
-   */
   sendMessage(recipientId: string, content: string, mediaId?: string): Observable<Message> {
-    return this.http.post<Message>(`${environment.apiUrl}/chat/send`, {
-      recipientId, content, mediaId
+    return this.http.post<Message>(`${this.apiUrl}/send`, {
+      recipientId,
+      content,
+      mediaId
     });
   }
 
-  getMessageById(id: string): Observable<Message> {
-    return this.http.get<Message>(`${environment.apiUrl}/messages/${id}`);
-  }
-
-  /**
-   * Get conversation history with another user by merID.
-   */
-  getConversation(withMerID: string, page: number = 0, size: number = 50): Observable<PageResponse<Message>> {
+  getConversation(merID1: string, merID2: string, page: number = 0, pageSize: number = 50): Observable<Message[]> {
     const params = new HttpParams()
+      .set('merID1', merID1)
+      .set('merID2', merID2)
       .set('page', page.toString())
-      .set('size', size.toString());
-    return this.http.get<PageResponse<Message>>(`${environment.apiUrl}/chat/conversation/${withMerID}`, { params });
+      .set('pageSize', pageSize.toString());
+    return this.http.get<Message[]>(`${this.apiUrl}/conversation`, { params });
   }
 
-  getUnreadCount(): Observable<number> {
-    return this.http.get<number>(`${environment.apiUrl}/chat/unread/count`);
+  getUnreadCount(): Observable<{ unreadCount: number }> {
+    return this.http.get<{ unreadCount: number }>(`${this.apiUrl}/unread/count`);
   }
 }

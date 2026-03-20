@@ -1,164 +1,28 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { User } from '../../core/models';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="settings-container">
-      <button class="back-btn" (click)="goBack()" id="settings-back-btn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Back
-      </button>
-
-      <h1>Settings</h1>
-
-      <!-- Account Settings -->
-      <section class="settings-section">
-        <h2>Account</h2>
-        <div class="settings-card">
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Display Name</span>
-              <span class="setting-value">{{ currentUser?.displayName }}</span>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">merID</span>
-              <span class="setting-value id-value">{{ currentUser?.merID }}</span>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Email</span>
-              <span class="setting-value">{{ currentUser?.email }}</span>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Role</span>
-              <span class="setting-value">{{ currentUser?.role }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Security -->
-      <section class="settings-section">
-        <h2>Security</h2>
-        <div class="settings-card">
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Authentication</span>
-              <span class="setting-value">Google SSO ({{ currentUser?.ssoProvider }})</span>
-            </div>
-            <span class="badge secure-badge">Secure</span>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Session</span>
-              <span class="setting-value">Active — JWT Token</span>
-            </div>
-            <button class="danger-btn" (click)="logout()" id="settings-logout-btn">Log Out</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- About -->
-      <section class="settings-section">
-        <h2>About OrgChat</h2>
-        <div class="settings-card">
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Version</span>
-              <span class="setting-value">1.0.0</span>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Stack</span>
-              <span class="setting-value">Angular + Spring Boot + MongoDB</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  `,
-  styles: [`
-    .settings-container {
-      min-height: 100vh; background: #f5f6fa; color: #1a1a2e;
-      font-family: 'Inter', sans-serif; padding: 24px;
-      max-width: 640px; margin: 0 auto;
-      overflow-y: auto;
-    }
-
-    .back-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: none; border: none; color: #9ca3af;
-      cursor: pointer; font-size: 0.85rem; padding: 8px 12px;
-      border-radius: 8px; transition: all 0.2s; margin-bottom: 16px;
-      font-family: 'Inter', sans-serif;
-    }
-    .back-btn:hover { color: #1a1a2e; background: #e8eaf0; }
-
-    h1 {
-      font-size: 1.8rem; font-weight: 700; margin: 0 0 32px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-
-    .settings-section { margin-bottom: 28px; }
-    .settings-section h2 {
-      font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 1px; color: #9ca3af; margin: 0 0 12px;
-    }
-
-    .settings-card {
-      background: #ffffff; border: 1px solid #e8eaf0;
-      border-radius: 16px; overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    .setting-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid #f0f1f5;
-    }
-    .setting-row:last-child { border-bottom: none; }
-
-    .setting-info { display: flex; flex-direction: column; gap: 2px; }
-    .setting-label { color: #9ca3af; font-size: 0.8rem; }
-    .setting-value { font-size: 0.9rem; font-weight: 500; color: #1a1a2e; }
-    .id-value { color: #6366f1; font-family: monospace; }
-
-    .badge {
-      padding: 4px 12px; border-radius: 20px; font-size: 0.7rem;
-      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .secure-badge { background: rgba(16,185,129,0.1); color: #059669; }
-
-    .danger-btn {
-      padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.2);
-      background: rgba(239,68,68,0.05); color: #dc2626; font-size: 0.85rem;
-      cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
-    }
-    .danger-btn:hover { background: rgba(239,68,68,0.1); }
-  `]
+  templateUrl: './settings.component.html',
+  styleUrl: './settings.component.css'
 })
 export class SettingsComponent {
-  currentUser: User | null;
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
-  constructor(private authService: AuthService) {
-    this.currentUser = this.authService.currentUser;
+  currentUser = this.authService.currentUser;
+
+  logout(): void {
+    this.authService.logout().subscribe(() => {
+      this.router.navigate(['/login']);
+    });
   }
 
-  logout(): void { this.authService.logout(); }
-
-  goBack(): void { window.history.back(); }
+  goBack(): void {
+    this.router.navigate(['/chat']);
+  }
 }

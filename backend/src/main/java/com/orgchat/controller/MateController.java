@@ -30,7 +30,6 @@ public class MateController {
         log.info("GET /api/mates/search?merID={}", merID);
         return mateService.searchUser(merID)
                 .map(user -> {
-                    user.setPasswordHash(null);
                     return ResponseEntity.ok(user);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -90,7 +89,6 @@ public class MateController {
         String merID = principal.getName();
         log.info("GET /api/mates/list for '{}'", merID);
         List<User> mates = mateService.getMates(merID);
-        mates.forEach(u -> u.setPasswordHash(null));
         return ResponseEntity.ok(mates);
     }
 }

@@ -68,7 +68,7 @@ public class UserService {
     public User save(User user) {
         log.info("Saving user: {} ({})", user.getMerID(), user.getEmail());
         User saved = userRepository.save(user);
-        log.debug("User saved with id: {}", saved.getId());
+        log.debug("User saved with id: {}", saved.getMerID());
         return saved;
     }
 }

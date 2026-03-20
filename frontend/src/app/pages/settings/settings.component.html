@@ -1,0 +1,26 @@
+<div class="settings-container">
+  <button class="back-btn" (click)="goBack()">← Back to Chat</button>
+
+  <h1>Settings</h1>
+
+  <div class="settings-card">
+    <h2>Account</h2>
+    <div class="setting-item">
+      <label>Display Name </label>
+      <span>{{ currentUser?.displayName }}</span>
+    </div>
+    <div class="setting-item">
+      <label>merID</label>
+      <span>{{ currentUser?.merID }}</span>
+    </div>
+    <div class="setting-item">
+      <label>Email</label>
+      <span>{{ currentUser?.email }}</span>
+    </div>
+  </div>
+
+  <div class="settings-card danger">
+    <h2>Security</h2>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </div>
+</div>

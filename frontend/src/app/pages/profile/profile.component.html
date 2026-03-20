@@ -1,0 +1,30 @@
+<div class="profile-container">
+  <button class="back-btn" (click)="goBack()">← Back to Chat</button>
+
+  @if (loading) {
+    <div class="loading">Loading profile...</div>
+  } @else if (user) {
+    <div class="profile-header">
+      <div class="avatar-large">{{ user.displayName.charAt(0).toUpperCase() }}</div>
+      <h1>{{ user.displayName }}</h1>
+      <p class="merid">{{ user.merID }}</p>
+      <p class="email">{{ user.email }}</p>
+    </div>
+
+    <div class="media-section">
+      <h2>Media Uploads</h2>
+      @if (media.length > 0) {
+        <div class="media-grid">
+          @for (m of media; track m.id) {
+            <div class="media-item">
+              <p>{{ m.fileName }}</p>
+              <span>{{ mediaService.formatFileSize(m.fileSize) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p>No media uploads</p>
+      }
+    </div>
+  }
+</div>

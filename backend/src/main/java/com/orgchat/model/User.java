@@ -18,28 +18,26 @@ import java.time.Instant;
 public class User {
 
     @Id
-    private String id;
-
     @Indexed(unique = true)
-    private String merID;          // Member Entity Reference ID
+    private String merID;
 
     @Indexed(unique = true)
     private String email;
 
-    private String passwordHash;
-
-    private String displayName;    // first.last frontend handle
+    private String displayName;
 
     private String avatarUrl;
 
     @Builder.Default
-    private String role = "USER";  // USER, ADMIN
+    private String role = "USER";
 
-    private String ssoProvider;    // "google", "azure", etc.
+    private String ssoProvider;
 
-    private Instant createdAt;
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 
-    private Instant updatedAt;
+    @Builder.Default
+    private Instant updatedAt = Instant.now();
 
     private Instant lastLoginAt;
 }

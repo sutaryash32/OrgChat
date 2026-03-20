@@ -1,0 +1,64 @@
+<div class="chat-layout">
+  <!-- Sidebar with contacts -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="user-info">
+        <div class="avatar">{{ currentUser?.displayName?.charAt(0)?.toUpperCase() || '?' }}</div>
+        <div class="user-details">
+          <span class="user-name">{{ currentUser?.displayName }}</span>
+          <span class="user-merid">{{ currentUser?.merID }}</span>
+        </div>
+      </div>
+      <button class="icon-btn" (click)="logout()" title="Logout">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="search-box">
+      <input type="text" placeholder="Search contacts..." [(ngModel)]="searchQuery" (input)="filterUsers()"/>
+    </div>
+
+    <div class="contacts-list">
+      @for (user of filteredUsers; track user.merID) {
+        <div class="contact-item" [class.active]="selectedUser?.merID === user.merID" (click)="selectUser(user)">
+          <div class="contact-avatar">{{ user.displayName.charAt(0).toUpperCase() }}</div>
+          <div class="contact-info">
+            <span class="contact-name">{{ user.displayName }}</span>
+            <span class="contact-merid">{{ user.merID }}</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="sidebar-nav">
+      <button class="nav-btn" [routerLink]="['/profile', currentUser?.merID]">Profile</button>
+      <button class="nav-btn" [routerLink]="['/settings']">Settings</button>
+    </div>
+  </aside>
+
+  <!-- Chat area -->
+  <main class="chat-area">
+    @if (selectedUser) {
+      <div class="chat-header">
+        <span>{{ selectedUser.displayName }}</span>
+      </div>
+
+      <div class="messages-container">
+        @for (msg of messages; track msg.id) {
+          <div class="message" [class.sent]="msg.senderId === currentUser?.merID">
+            <div class="message-bubble">{{ msg.content }}</div>
+          </div>
+        }
+      </div>
+
+      <div class="message-input-area">
+        <input type="text" [(ngModel)]="messageContent" placeholder="Type a message..." (keyup.enter)="sendMessage()"/>
+        <button (click)="sendMessage()">Send</button>
+      </div>
+    } @else {
+      <div class="empty-state">Select a contact to start chatting</div>
+    }
+  </main>
+</div>

@@ -54,7 +54,6 @@ public class ChatController {
                 });
 
         // Sanitize sensitive data
-        recipient.setPasswordHash(null);
 
         log.info("Chat session started between '{}' and '{}'", senderMerID, recipientMerID);
         return ResponseEntity.ok(recipient);

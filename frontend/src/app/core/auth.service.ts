@@ -1,19 +1,22 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { AuthResponse, User } from './models';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private http = inject(HttpClient);
+  private router = inject(Router);
+
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
+  private tokenKey = 'orgchat_token';
   private userKey = 'orgchat_user';
-  private accessToken: string | null = null;
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor() {
     this.loadStoredUser();
   }
 
@@ -25,60 +28,63 @@ export class AuthService {
   }
 
   get token(): string | null {
-    return this.accessToken;
+    return localStorage.getItem(this.tokenKey);
   }
 
   get isAuthenticated(): boolean {
-    return !!this.token || !!this.currentUserSubject.value;
+    return !!this.token;
   }
 
   get currentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  loginWithGoogle(): void {
-    window.location.href = environment.googleAuthUrl;
+  get merID(): string | null {
+    return this.currentUser?.merID || null;
   }
 
-  handleAuthCallback(token: string, merID: string): void {
-    this.accessToken = token;
-    // Fetch full user profile
-    this.http.get<User>(`${environment.apiUrl}/users/${merID}`).subscribe({
-      next: (user) => {
-        localStorage.setItem(this.userKey, JSON.stringify(user));
-        this.currentUserSubject.next(user);
-        this.router.navigate(['/chat']);
-      },
-      error: () => {
-        // Still set basic info
-        const basicUser: User = {
-          id: '', merID, email: '', displayName: merID,
-          role: 'USER', ssoProvider: 'google'
-        };
-        localStorage.setItem(this.userKey, JSON.stringify(basicUser));
-        this.currentUserSubject.next(basicUser);
-        this.router.navigate(['/chat']);
-      }
-    });
-  }
-
-  refreshToken(): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(
-      `${environment.apiUrl}/auth/refresh`,
-      this.token ? { token: this.token } : {},
-      { withCredentials: true }
-    ).pipe(
-      tap(response => {
-        this.accessToken = response.token;
+  handleSSOCallback(code: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/sso/callback`, { code }).pipe(
+      tap((response: AuthResponse) => {
+        this.storeAuth(response);
       })
     );
   }
 
-  logout(): void {
-    this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe();
-    this.accessToken = null;
+  refreshToken(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/refresh`, {}).pipe(
+      tap((response: AuthResponse) => {
+        this.storeAuth(response);
+      })
+    );
+  }
+
+  logout(): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/logout`, {}).pipe(
+      tap(() => {
+        this.clearAuth();
+        this.router.navigate(['/login']);
+      })
+    );
+  }
+
+  private storeAuth(response: AuthResponse): void {
+    localStorage.setItem(this.tokenKey, response.token);
+    const user: User = {
+      id: response.merID,
+      merID: response.merID,
+      email: response.email,
+      displayName: response.displayName,
+      role: 'USER',
+      ssoProvider: 'google'
+    };
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUserSubject.next(user);
+  }
+
+  private clearAuth(): void {
+    localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
   }
 }

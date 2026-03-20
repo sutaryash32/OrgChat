@@ -46,7 +46,6 @@ public class UserController {
 
         return userService.findByMerID(id)
                 .map(user -> {
-                    user.setPasswordHash(null);
                     log.info("User profile found: {} ({})", user.getDisplayName(), id);
                     return ResponseEntity.ok(user);
                 })

@@ -1,34 +1,34 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { Media } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class MediaService {
+  private http = inject(HttpClient);
+  private apiUrl = 'http://localhost:8080/api/media';
 
-  constructor(private http: HttpClient) {}
-
-  upload(file: File): Observable<Media> {
+  upload(file: File, uploaderId: string): Observable<Media> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<Media>(`${environment.apiUrl}/media/upload`, formData);
+    formData.append('uploaderId', uploaderId);
+    return this.http.post<Media>(`${this.apiUrl}/upload`, formData);
   }
 
-  getDownloadUrl(mediaId: string): string {
-    return `${environment.apiUrl}/media/download/${mediaId}`;
+  getMediaInfo(id: string): Observable<Media> {
+    return this.http.get<Media>(`${this.apiUrl}/info/${id}`);
   }
 
-  delete(mediaId: string): Observable<void> {
-    return this.http.delete<void>(`${environment.apiUrl}/media/delete/${mediaId}`);
+  getDownloadUrl(id: string): string {
+    return `${this.apiUrl}/download/${id}`;
   }
 
-  getMediaByUser(merID: string): Observable<Media[]> {
-    return this.http.get<Media[]>(`${environment.apiUrl}/media/user/${merID}`);
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/delete/${id}`);
   }
 
-  getMediaById(id: string): Observable<Media> {
-    return this.http.get<Media>(`${environment.apiUrl}/media/info/${id}`);
+  getUserMedia(merID: string): Observable<Media[]> {
+    return this.http.get<Media[]>(`${this.apiUrl}/user/${merID}`);
   }
 
   formatFileSize(bytes: number): string {

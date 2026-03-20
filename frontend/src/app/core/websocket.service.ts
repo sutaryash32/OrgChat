@@ -1,23 +1,22 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { Client, IMessage } from '@stomp/stompjs';
+import { environment } from '../../environments/environment';
 import SockJS from 'sockjs-client';
 import { AuthService } from './auth.service';
 import { Message } from './models';
-import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService implements OnDestroy {
+  private authService = inject(AuthService);
   private stompClient: Client | null = null;
   private messageSubject = new Subject<Message>();
   public messages$ = this.messageSubject.asObservable();
 
-  constructor(private authService: AuthService) {}
-
   connect(): void {
     if (this.stompClient?.active) return;
 
-    const merID = this.authService.currentUser?.merID;
+    const merID = this.authService.merID;
     const token = this.authService.token;
     if (!merID || !token) return;
 
@@ -27,10 +26,9 @@ export class WebSocketService implements OnDestroy {
       connectHeaders: {
         Authorization: `Bearer ${token}`
       },
-      debug: () => {},   // Suppress debug logs
+      debug: () => {},
 
       onConnect: () => {
-        // Subscribe to personal message queue
         this.stompClient!.subscribe(
           `/user/${merID}/queue/messages`,
           (frame: IMessage) => {
@@ -49,9 +47,8 @@ export class WebSocketService implements OnDestroy {
   }
 
   disconnect(): void {
-    if (this.stompClient) {
+    if (this.stompClient?.active) {
       this.stompClient.deactivate();
-      this.stompClient = null;
     }
   }
 
@@ -59,3 +56,4 @@ export class WebSocketService implements OnDestroy {
     this.disconnect();
   }
 }
+
