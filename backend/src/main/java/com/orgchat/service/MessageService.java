@@ -15,7 +15,12 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
@@ -58,7 +63,8 @@ public class MessageService {
             log.debug("Message includes media attachment: {}", request.getMediaId());
         }
 
-        MessageResponse response = toResponse(saved);
+        Map<String, String> senderDisplayNames = resolveDisplayNames(Set.of(saved.getSenderId()));
+        MessageResponse response = toResponse(saved, senderDisplayNames);
 
         // Real-time delivery via WebSocket
         try {
@@ -76,7 +82,8 @@ public class MessageService {
 
     public Optional<MessageResponse> findById(String id) {
         log.debug("Fetching message by id: {}", id);
-        Optional<MessageResponse> result = messageRepository.findById(id).map(this::toResponse);
+        Optional<MessageResponse> result = messageRepository.findById(id)
+                .map(message -> toResponse(message, resolveDisplayNames(Set.of(message.getSenderId()))));
         if (result.isEmpty()) {
             log.warn("Message not found: {}", id);
         }
@@ -85,9 +92,15 @@ public class MessageService {
 
     public Page<MessageResponse> getConversation(String userA, String userB, int page, int size) {
         log.info("Fetching conversation between '{}' and '{}' (page: {}, size: {})", userA, userB, page, size);
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
-        Page<MessageResponse> conversation = messageRepository.findConversation(userA, userB, pageRequest)
-                .map(this::toResponse);
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "timestamp"));
+        var messagePage = messageRepository.findConversation(userA, userB, pageRequest);
+
+        Set<String> senderIds = messagePage.getContent().stream()
+            .map(Message::getSenderId)
+            .collect(Collectors.toSet());
+        Map<String, String> senderDisplayNames = resolveDisplayNames(senderIds);
+
+        Page<MessageResponse> conversation = messagePage.map(message -> toResponse(message, senderDisplayNames));
         log.debug("Conversation returned {} messages (total: {})", conversation.getNumberOfElements(), conversation.getTotalElements());
         return conversation;
     }
@@ -98,10 +111,23 @@ public class MessageService {
         return count;
     }
 
-    private MessageResponse toResponse(Message message) {
-        String senderName = userRepository.findByMerID(message.getSenderId())
-                .map(User::getDisplayName)
-                .orElse(message.getSenderId());
+    private Map<String, String> resolveDisplayNames(Set<String> senderIds) {
+        if (senderIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<User> users = userRepository.findAllByMerIDIn(senderIds.stream().toList());
+        return users.stream().collect(Collectors.toMap(
+                User::getMerID,
+                user -> (user.getDisplayName() == null || user.getDisplayName().isBlank())
+                        ? user.getMerID()
+                        : user.getDisplayName(),
+                (left, right) -> left
+        ));
+    }
+
+    private MessageResponse toResponse(Message message, Map<String, String> senderDisplayNames) {
+        String senderName = senderDisplayNames.getOrDefault(message.getSenderId(), message.getSenderId());
 
         return MessageResponse.builder()
                 .id(message.getId())

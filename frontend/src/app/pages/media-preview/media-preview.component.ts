@@ -43,6 +43,11 @@ import { Media } from '../../core/models';
             <div class="spinner"></div>
             <p>Loading media...</p>
           </div>
+        } @else if (error) {
+          <div class="error-state">
+            <p>{{ error }}</p>
+            <button class="back-btn" (click)="goBack()">Go Back</button>
+          </div>
         } @else if (media) {
           @if (isImage) {
             <img [src]="downloadUrl" [alt]="media.fileName" class="preview-image"/>
@@ -162,6 +167,11 @@ import { Media } from '../../core/models';
       display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 80px 0;
       color: #9ca3af;
     }
+    .error-state {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      color: #dc2626; background: #ffffff; border: 1px solid #fecaca;
+      border-radius: 12px; padding: 20px 24px;
+    }
     .spinner {
       width: 40px; height: 40px; border: 3px solid rgba(99,102,241,0.15);
       border-top-color: #6366f1; border-radius: 50%;
@@ -174,6 +184,7 @@ import { Media } from '../../core/models';
 export class MediaPreviewComponent implements OnInit {
   media: Media | null = null;
   loading = true;
+  error: string | null = null;
   downloadUrl = '';
 
   get isImage(): boolean { return this.mediaService.isImage(this.media?.fileType || ''); }
@@ -187,14 +198,25 @@ export class MediaPreviewComponent implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.downloadUrl = this.mediaService.getDownloadUrl(id);
+    if (!id) {
+      this.error = 'Invalid media id.';
       this.loading = false;
-      this.media = {
-        id, uploaderId: '', fileName: 'Media File', fileType: 'unknown',
-        fileSize: 0, storagePath: '', timestamp: new Date().toISOString()
-      };
+      return;
     }
+
+    this.downloadUrl = this.mediaService.getDownloadUrl(id);
+    this.mediaService.getMediaById(id).subscribe({
+      next: (media) => {
+        this.media = media;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = err?.status === 404
+          ? 'Media not found.'
+          : 'Failed to load media metadata.';
+        this.loading = false;
+      }
+    });
   }
 
   deleteMedia(): void {

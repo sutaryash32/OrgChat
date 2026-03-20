@@ -8,6 +8,12 @@ export interface User {
   ssoProvider: string;
 }
 
+export interface UserSummary {
+  merID: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
 export interface Message {
   id: string;
   senderId: string;

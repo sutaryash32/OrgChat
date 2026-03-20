@@ -28,7 +28,7 @@ export class MediaService {
   }
 
   getMediaById(id: string): Observable<Media> {
-    return this.http.get<Media>(`${environment.apiUrl}/media/download/${id}`);
+    return this.http.get<Media>(`${environment.apiUrl}/media/info/${id}`);
   }
 
   formatFileSize(bytes: number): string {
