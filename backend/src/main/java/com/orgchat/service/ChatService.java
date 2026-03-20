@@ -12,6 +12,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * ChatService handles all chat operations keyed by merID.
  * Delegates core messaging to MessageService where appropriate.
@@ -47,7 +52,7 @@ public class ChatService {
     }
 
     /**
-     * Retrieve conversation between two users, ordered by timestamp (newest first).
+    * Retrieve conversation between two users, ordered by timestamp (oldest first).
      * Filters messages where senderMerID and recipientMerID match (bidirectional).
      *
      * @param userAMerID first user's merID
@@ -60,9 +65,15 @@ public class ChatService {
         log.info("Chat.getConversation — between '{}' and '{}' (page: {}, size: {})",
                 userAMerID, userBMerID, page, size);
 
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
-        Page<MessageResponse> conversation = messageRepository.findConversation(userAMerID, userBMerID, pageRequest)
-                .map(this::toResponse);
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "timestamp"));
+        var messagePage = messageRepository.findConversation(userAMerID, userBMerID, pageRequest);
+
+        Set<String> senderIds = messagePage.getContent().stream()
+            .map(Message::getSenderId)
+            .collect(Collectors.toSet());
+        Map<String, String> displayNames = resolveDisplayNames(senderIds);
+
+        Page<MessageResponse> conversation = messagePage.map(message -> toResponse(message, displayNames));
 
         log.debug("Conversation returned {} messages (total: {})",
                 conversation.getNumberOfElements(), conversation.getTotalElements());
@@ -85,10 +96,21 @@ public class ChatService {
     /**
      * Helper: Convert Message entity to MessageResponse DTO with sender name resolved.
      */
-    private MessageResponse toResponse(Message message) {
-        String senderName = userRepository.findByMerID(message.getSenderId())
-                .map(u -> u.getDisplayName() != null ? u.getDisplayName() : u.getMerID())
-                .orElse(message.getSenderId());
+    private Map<String, String> resolveDisplayNames(Set<String> senderIds) {
+        if (senderIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> ids = senderIds.stream().toList();
+        return userRepository.findAllByMerIDIn(ids).stream().collect(Collectors.toMap(
+                u -> u.getMerID(),
+                u -> (u.getDisplayName() == null || u.getDisplayName().isBlank()) ? u.getMerID() : u.getDisplayName(),
+                (left, right) -> left
+        ));
+    }
+
+    private MessageResponse toResponse(Message message, Map<String, String> displayNames) {
+        String senderName = displayNames.getOrDefault(message.getSenderId(), message.getSenderId());
 
         return MessageResponse.builder()
                 .id(message.getId())

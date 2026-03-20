@@ -18,11 +18,15 @@ export class WebSocketService implements OnDestroy {
     if (this.stompClient?.active) return;
 
     const merID = this.authService.currentUser?.merID;
-    if (!merID) return;
+    const token = this.authService.token;
+    if (!merID || !token) return;
 
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(environment.wsUrl) as any,
       reconnectDelay: 5000,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
       debug: () => {},   // Suppress debug logs
 
       onConnect: () => {

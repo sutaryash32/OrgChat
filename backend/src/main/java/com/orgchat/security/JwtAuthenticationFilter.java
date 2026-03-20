@@ -1,5 +1,7 @@
 package com.orgchat.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.lang.NonNull;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,9 +32,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String uri = request.getRequestURI();
         String authHeader = request.getHeader("Authorization");
@@ -52,9 +55,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 } else {
                     log.warn("Invalid JWT for request: {} {} — token validation failed", request.getMethod(), uri);
                 }
-            } catch (Exception e) {
-                log.error("JWT authentication error for {} {}: {}", request.getMethod(), uri, e.getMessage());
+            } catch (ExpiredJwtException e) {
+                log.info("Expired JWT for request: {} {}", request.getMethod(), uri);
                 SecurityContextHolder.clearContext();
+            } catch (JwtException | IllegalArgumentException e) {
+                String remoteIp = request.getRemoteAddr();
+                log.warn("Rejected malformed/tampered JWT from IP {} for {} {}: {}",
+                        remoteIp, request.getMethod(), uri, e.getMessage());
+                SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Unauthorized: invalid token");
+                return;
             }
         } else {
             log.debug("No JWT token for: {} {}", request.getMethod(), uri);

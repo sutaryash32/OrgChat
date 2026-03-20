@@ -70,6 +70,17 @@ public class MediaController {
                 .body(new InputStreamResource(resource.getInputStream()));
     }
 
+    @GetMapping("/info/{id}")
+    public ResponseEntity<Media> getMediaInfo(@PathVariable String id) {
+        log.info("GET /api/media/info/{}", id);
+        return mediaService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> {
+                    log.warn("Media metadata not found: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteMedia(
             Principal principal,

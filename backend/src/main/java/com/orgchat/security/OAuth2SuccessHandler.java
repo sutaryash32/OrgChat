@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -52,9 +53,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
-        // Derive merID from email
-        String merID = email.split("@")[0];
-        log.info("Derived merID: '{}'", merID);
+        String baseMerID = deriveBaseMerID(email);
+        log.info("Derived base merID: '{}'", baseMerID);
 
         // Upsert user
         Optional<User> existing = userRepository.findByEmail(email);
@@ -62,8 +62,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         if (existing.isPresent()) {
             user = existing.get();
             user.setDisplayName(name);
-            log.info("Existing user found — updating display name for: {}", merID);
+            log.info("Existing user found — updating display name for: {}", user.getMerID());
         } else {
+            String merID = resolveUniqueMerID(baseMerID);
             user = User.builder()
                     .merID(merID)
                     .email(email)
@@ -75,16 +76,46 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             log.info("New user created — merID: '{}', email: '{}'", merID, email);
         }
         user.setLastLoginAt(Instant.now());
-        userRepository.save(user);
-        log.info("User saved to database: {}", merID);
+        try {
+            userRepository.save(user);
+            log.info("User saved to database: {}", user.getMerID());
+        } catch (DuplicateKeyException e) {
+            log.warn("Duplicate key while saving OAuth2 user, retrying with unique merID for email: {}", email);
+            if (existing.isEmpty()) {
+                user.setMerID(resolveUniqueMerID(baseMerID));
+                userRepository.save(user);
+                log.info("User saved after collision resolution: {}", user.getMerID());
+            } else {
+                throw e;
+            }
+        }
 
         // Issue tokens
         var authResponse = authService.issueTokens(user);
-        log.info("Tokens issued for user: {}", merID);
+        log.info("Tokens issued for user: {}", user.getMerID());
 
         // Redirect to frontend with token
-        String redirectUrl = frontendRedirectUrl + "?token=" + authResponse.getToken() + "&merID=" + merID;
-        log.info("Redirecting to frontend: {}", frontendRedirectUrl + "?token=***&merID=" + merID);
+        String redirectUrl = frontendRedirectUrl + "?token=" + authResponse.getToken() + "&merID=" + user.getMerID();
+        log.info("Redirecting to frontend: {}", frontendRedirectUrl + "?token=***&merID=" + user.getMerID());
         response.sendRedirect(redirectUrl);
+    }
+
+    private String deriveBaseMerID(String email) {
+        return email
+                .replace("@", "_")
+                .replaceAll("[^a-zA-Z0-9._-]", "_")
+                .toLowerCase();
+    }
+
+    private String resolveUniqueMerID(String baseMerID) {
+        if (!userRepository.existsByMerID(baseMerID)) {
+            return baseMerID;
+        }
+
+        int suffix = 1;
+        while (userRepository.existsByMerID(baseMerID + suffix)) {
+            suffix++;
+        }
+        return baseMerID + suffix;
     }
 }

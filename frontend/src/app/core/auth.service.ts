@@ -10,8 +10,8 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  private tokenKey = 'orgchat_token';
   private userKey = 'orgchat_user';
+  private accessToken: string | null = null;
 
   constructor(private http: HttpClient, private router: Router) {
     this.loadStoredUser();
@@ -25,7 +25,7 @@ export class AuthService {
   }
 
   get token(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    return this.accessToken;
   }
 
   get isAuthenticated(): boolean {
@@ -41,7 +41,7 @@ export class AuthService {
   }
 
   handleAuthCallback(token: string, merID: string): void {
-    localStorage.setItem(this.tokenKey, token);
+    this.accessToken = token;
     // Fetch full user profile
     this.http.get<User>(`${environment.apiUrl}/users/${merID}`).subscribe({
       next: (user) => {
@@ -67,14 +67,14 @@ export class AuthService {
       token: this.token
     }).pipe(
       tap(response => {
-        localStorage.setItem(this.tokenKey, response.token);
+        this.accessToken = response.token;
       })
     );
   }
 
   logout(): void {
     this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe();
-    localStorage.removeItem(this.tokenKey);
+    this.accessToken = null;
     localStorage.removeItem(this.userKey);
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);

@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+
 import javax.crypto.SecretKey;
 import java.util.Date;
 
@@ -26,6 +28,15 @@ public class JwtUtil {
     public JwtUtil(@Value("${app.jwt.secret}") String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
         log.info("JwtUtil initialized");
+    }
+
+    @PostConstruct
+    public void validateSecretStrength() {
+        // HS256 requires at least 256-bit key material.
+        int keyLength = key.getEncoded().length;
+        if (keyLength < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 bytes");
+        }
     }
 
     public String generateToken(String merID, String email) {
@@ -53,16 +64,18 @@ public class JwtUtil {
     }
 
     public String extractMerID(String token) {
+        String merID = getClaims(token).getSubject();
+        log.debug("Extracted merID from token: '{}'", merID);
+        return merID;
+    }
+
+    public String extractMerIDIgnoringExpiry(String token) {
         try {
-            String merID = getClaims(token).getSubject();
-            log.debug("Extracted merID from token: '{}'", merID);
-            return merID;
+            return extractMerID(token);
         } catch (ExpiredJwtException e) {
-            log.warn("Token expired, extracting merID from expired claims");
-            return e.getClaims().getSubject();
-        } catch (Exception e) {
-            log.error("Failed to extract merID from token: {}", e.getMessage());
-            throw e;
+            String merID = e.getClaims().getSubject();
+            log.debug("Extracted merID from expired token claims: '{}'", merID);
+            return merID;
         }
     }
 
@@ -73,16 +86,11 @@ public class JwtUtil {
             return true;
         } catch (ExpiredJwtException e) {
             log.warn("JWT expired at: {}", e.getClaims().getExpiration());
-        } catch (UnsupportedJwtException e) {
-            log.error("Unsupported JWT: {}", e.getMessage());
-        } catch (MalformedJwtException e) {
-            log.error("Malformed JWT: {}", e.getMessage());
-        } catch (SecurityException e) {
-            log.error("JWT signature validation failed: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.error("JWT claims string is empty: {}", e.getMessage());
+            return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("JWT validation failed: {}", e.getMessage());
+            throw e;
         }
-        return false;
     }
 
     private Claims getClaims(String token) {

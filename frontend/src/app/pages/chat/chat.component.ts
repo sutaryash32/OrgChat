@@ -8,7 +8,7 @@ import { ChatService } from '../../core/chat.service';
 import { MediaService } from '../../core/media.service';
 import { UserService } from '../../core/user.service';
 import { WebSocketService } from '../../core/websocket.service';
-import { Message, User, Media } from '../../core/models';
+import { Message, User, UserSummary } from '../../core/models';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -46,7 +46,7 @@ import { environment } from '../../../environments/environment';
           @for (user of filteredUsers; track user.merID) {
             <div class="contact-item" [class.active]="selectedUser?.merID === user.merID"
                  (click)="selectUser(user)" [id]="'contact-' + user.merID">
-              <div class="contact-avatar">{{ user.displayName?.charAt(0)?.toUpperCase() }}</div>
+              <div class="contact-avatar">{{ user.displayName.charAt(0).toUpperCase() }}</div>
               <div class="contact-info">
                 <span class="contact-name">{{ user.displayName }}</span>
                 <span class="contact-merid">{{ user.merID }}</span>
@@ -83,7 +83,7 @@ import { environment } from '../../../environments/environment';
           <!-- Chat Header -->
           <div class="chat-header">
             <div class="chat-header-info">
-              <div class="header-avatar">{{ selectedUser.displayName?.charAt(0)?.toUpperCase() }}</div>
+              <div class="header-avatar">{{ selectedUser.displayName.charAt(0).toUpperCase() }}</div>
               <div>
                 <span class="header-name">{{ selectedUser.displayName }}</span>
                 <span class="header-merid">{{ selectedUser.merID }}</span>
@@ -386,9 +386,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
 
   currentUser: User | null = null;
-  users: User[] = [];
-  filteredUsers: User[] = [];
-  selectedUser: User | null = null;
+  users: UserSummary[] = [];
+  filteredUsers: UserSummary[] = [];
+  selectedUser: UserSummary | null = null;
   messages: Message[] = [];
   messageText = '';
   searchQuery = '';
@@ -461,12 +461,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       u.displayName?.toLowerCase().includes(q) || u.merID?.toLowerCase().includes(q));
   }
 
-  selectUser(user: User): void {
+  selectUser(user: UserSummary): void {
     this.selectedUser = user;
     this.messages = [];
     this.chatService.getConversation(user.merID).subscribe({
       next: (page) => {
-        this.messages = page.content.reverse();
+        this.messages = page.content;
         this.shouldScroll = true;
       }
     });
