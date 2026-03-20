@@ -8,10 +8,6 @@ import com.orgchat.repository.UserRepository;
 import com.orgchat.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -24,16 +20,13 @@ public class AuthService {
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
     private final JwtUtil jwtUtil;
-    private final MongoTemplate mongoTemplate;
 
     public AuthService(UserRepository userRepository,
                        SessionRepository sessionRepository,
-                       JwtUtil jwtUtil,
-                       MongoTemplate mongoTemplate) {
+                       JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.jwtUtil = jwtUtil;
-        this.mongoTemplate = mongoTemplate;
     }
 
     public AuthResponse refreshToken(String expiredToken) {
@@ -64,25 +57,27 @@ public class AuthService {
         String token = jwtUtil.generateToken(user.getMerID(), user.getEmail());
         String refreshToken = jwtUtil.generateRefreshToken(user.getMerID(), user.getEmail());
 
-        // Persist session with atomic upsert keyed by userId.
+        // Persist session with atomic upsert-style logic keyed by userId.
         Instant now = Instant.now();
         Instant expiresAt = now.plusMillis(jwtUtil.getExpirationMs());
 
-        Query query = Query.query(Criteria.where("userId").is(user.getMerID()));
-        Update update = new Update()
-            .set("userId", user.getMerID())
-            .set("jwtToken", token)
-            .set("issuedAt", now)
-            .set("expiresAt", expiresAt);
+        final Session[] sessionRef = new Session[1];
+        sessionRepository.findByUserId(user.getMerID()).ifPresentOrElse(existing -> {
+            existing.setJwtToken(token);
+            existing.setIssuedAt(now);
+            existing.setExpiresAt(expiresAt);
+            sessionRef[0] = sessionRepository.save(existing);
+        }, () -> {
+            Session created = Session.builder()
+                    .userId(user.getMerID())
+                    .jwtToken(token)
+                    .issuedAt(now)
+                    .expiresAt(expiresAt)
+                    .build();
+            sessionRef[0] = sessionRepository.save(created);
+        });
 
-        mongoTemplate.upsert(query, update, Session.class);
-
-        Session session = Session.builder()
-            .userId(user.getMerID())
-            .jwtToken(token)
-            .issuedAt(now)
-            .expiresAt(expiresAt)
-            .build();
+        Session session = sessionRef[0];
 
         log.debug("Session persisted for user: {}, expires at: {}", user.getMerID(), session.getExpiresAt());
 

@@ -2,12 +2,14 @@ package com.orgchat.controller;
 
 import com.orgchat.dto.AuthResponse;
 import com.orgchat.service.AuthService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -31,10 +33,16 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody(required = false) Map<String, String> body,
+                                                     HttpServletRequest request) {
+        String token = body != null ? body.get("token") : null;
+
         if (token == null || token.isBlank()) {
-            log.warn("Token refresh failed — no token provided in request body");
+            token = readRefreshCookie(request);
+        }
+
+        if (token == null || token.isBlank()) {
+            log.warn("Token refresh failed — no token in body or refresh cookie");
             return ResponseEntity.badRequest().build();
         }
         log.info("Token refresh request received");
@@ -48,10 +56,23 @@ public class AuthController {
         }
     }
 
+    private String readRefreshCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+
+        for (Cookie cookie : cookies) {
+            if ("orgchat_refresh".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
+
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(Principal principal) {
-        if (principal != null) {
-            String merID = principal.getName();
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal String merID) {
+        if (merID != null) {
             log.info("Logout request from user: {}", merID);
             authService.logout(merID);
         } else {

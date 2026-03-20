@@ -9,11 +9,11 @@ import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -30,9 +30,8 @@ public class MediaController {
 
     @PostMapping("/upload")
     public ResponseEntity<Media> uploadMedia(
-            Principal principal,
+            @AuthenticationPrincipal String merID,
             @RequestParam("file") MultipartFile file) throws IOException {
-        String merID = principal.getName();
         log.info("POST /api/media/upload — user: '{}', file: '{}', size: {} bytes",
                 merID, file.getOriginalFilename(), file.getSize());
         try {
@@ -83,9 +82,8 @@ public class MediaController {
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteMedia(
-            Principal principal,
+            @AuthenticationPrincipal String merID,
             @PathVariable String id) {
-        String merID = principal.getName();
         log.info("DELETE /api/media/delete/{} — requester: '{}'", id, merID);
         boolean deleted = mediaService.delete(id, merID);
         if (deleted) {

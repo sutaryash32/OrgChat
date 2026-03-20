@@ -29,7 +29,7 @@ export class AuthService {
   }
 
   get isAuthenticated(): boolean {
-    return !!this.token;
+    return !!this.token || !!this.currentUserSubject.value;
   }
 
   get currentUser(): User | null {
@@ -63,9 +63,11 @@ export class AuthService {
   }
 
   refreshToken(): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/refresh`, {
-      token: this.token
-    }).pipe(
+    return this.http.post<AuthResponse>(
+      `${environment.apiUrl}/auth/refresh`,
+      this.token ? { token: this.token } : {},
+      { withCredentials: true }
+    ).pipe(
       tap(response => {
         this.accessToken = response.token;
       })

@@ -6,9 +6,9 @@ import com.orgchat.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -24,21 +24,21 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserByMerID(@PathVariable String id, Principal principal) {
+    public ResponseEntity<User> getUserByMerID(@PathVariable String id,
+                                               @AuthenticationPrincipal String currentMerID) {
         log.info("GET /api/users/{} — fetching user profile", id);
 
-        if (principal == null) {
+        if (currentMerID == null) {
             return ResponseEntity.status(401).build();
         }
 
-        String requesterMerID = principal.getName();
-        boolean isSelf = requesterMerID.equals(id);
-        boolean isAdmin = userService.findByMerID(requesterMerID)
+        boolean isSelf = currentMerID.equals(id);
+        boolean isAdmin = userService.findByMerID(currentMerID)
                 .map(user -> "ADMIN".equalsIgnoreCase(user.getRole()))
                 .orElse(false);
 
         if (!isSelf && !isAdmin) {
-            log.warn("Forbidden user profile access attempt by '{}' for '{}'", requesterMerID, id);
+            log.warn("Forbidden user profile access attempt by '{}' for '{}'", currentMerID, id);
             return ResponseEntity.status(403).build();
         }
 

@@ -7,10 +7,9 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -26,9 +25,8 @@ public class MessageController {
 
     @PostMapping("/send")
     public ResponseEntity<MessageResponse> sendMessage(
-            Principal principal,
+            @AuthenticationPrincipal String merID,
             @Valid @RequestBody MessageRequest request) {
-        String merID = principal.getName();
         log.info("POST /api/messages/send — from: '{}' to: '{}'", merID, request.getRecipientId());
         try {
             MessageResponse response = messageService.sendMessage(merID, request);
@@ -56,11 +54,10 @@ public class MessageController {
 
     @GetMapping("/conversation")
     public ResponseEntity<Page<MessageResponse>> getConversation(
-            Principal principal,
+            @AuthenticationPrincipal String merID,
             @RequestParam String withUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        String merID = principal.getName();
         log.info("GET /api/messages/conversation — '{}' with '{}' (page: {}, size: {})",
                 merID, withUser, page, size);
         return ResponseEntity.ok(
@@ -68,8 +65,7 @@ public class MessageController {
     }
 
     @GetMapping("/unread/count")
-    public ResponseEntity<Long> getUnreadCount(Principal principal) {
-        String merID = principal.getName();
+    public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal String merID) {
         log.debug("GET /api/messages/unread/count for '{}'", merID);
         return ResponseEntity.ok(messageService.getUnreadCount(merID));
     }

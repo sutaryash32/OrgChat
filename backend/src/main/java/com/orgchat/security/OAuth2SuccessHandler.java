@@ -3,6 +3,7 @@ package com.orgchat.security;
 import com.orgchat.model.User;
 import com.orgchat.repository.UserRepository;
 import com.orgchat.service.AuthService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -93,6 +94,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // Issue tokens
         var authResponse = authService.issueTokens(user);
         log.info("Tokens issued for user: {}", user.getMerID());
+
+        Cookie refreshCookie = new Cookie("orgchat_refresh", authResponse.getRefreshToken());
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(false); // set true behind HTTPS in production
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(7 * 24 * 60 * 60);
+        response.addCookie(refreshCookie);
 
         // Redirect to frontend with token
         String redirectUrl = frontendRedirectUrl + "?token=" + authResponse.getToken() + "&merID=" + user.getMerID();

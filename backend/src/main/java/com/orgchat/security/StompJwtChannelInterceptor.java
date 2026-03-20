@@ -44,7 +44,7 @@ public class StompJwtChannelInterceptor implements ChannelInterceptor {
 
             String token = authHeader.substring(7);
             try {
-                if (jwtUtil.validateToken(token)) {
+                if (jwtUtil.isTokenValid(token)) {
                     String merID = jwtUtil.extractMerID(token);
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                             merID,
