@@ -34,7 +34,11 @@ spring:
 # Custom application properties
 app:
   jwt:
+<<<<<<< HEAD
     secret: ${JWT_SECRET:}
+=======
+    secret: ${JWT_SECRET}
+>>>>>>> origin/feature-branch
     expiration-ms: 86400000          # 24 hours
     refresh-expiration-ms: 604800000 # 7 days
   cors:

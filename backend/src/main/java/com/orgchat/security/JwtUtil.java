@@ -44,6 +44,15 @@ public class JwtUtil {
         log.info("JwtUtil initialized");
     }
 
+    @PostConstruct
+    public void validateSecretStrength() {
+        // HS256 requires at least 256-bit key material.
+        int keyLength = key.getEncoded().length;
+        if (keyLength < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 bytes");
+        }
+    }
+
     public String generateToken(String merID, String email) {
         String token = Jwts.builder()
                 .claim("email", email)
