@@ -1,6 +1,7 @@
 package com.orgchat.controller;
 
-import com.orgchat.dto.UserSummaryDto;
+
+import com.orgchat.dto.UserSummaryDTO;
 import com.orgchat.model.User;
 import com.orgchat.service.UserService;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
@@ -55,9 +57,9 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserSummaryDto>> getAllUsers() {
+    public ResponseEntity<List<UserSummaryDTO>> getAllUsers() {
         log.info("GET /api/users — fetching all users");
-        List<UserSummaryDto> users = userService.findAllSummaries();
+        List<UserSummaryDTO> users = userService.findAllSummaries();
         log.info("Returning {} users", users.size());
         return ResponseEntity.ok(users);
     }

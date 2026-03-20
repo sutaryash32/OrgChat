@@ -1,6 +1,5 @@
 package com.orgchat.config;
 
-import com.orgchat.security.StompJwtChannelInterceptor;
 import org.springframework.lang.NonNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -13,10 +12,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    private final StompJwtChannelInterceptor stompJwtChannelInterceptor;
+    private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
 
-    public WebSocketConfig(StompJwtChannelInterceptor stompJwtChannelInterceptor) {
-        this.stompJwtChannelInterceptor = stompJwtChannelInterceptor;
+    public WebSocketConfig(StompAuthChannelInterceptor stompAuthChannelInterceptor) {
+        this.stompAuthChannelInterceptor = stompAuthChannelInterceptor;
     }
 
     @Override
@@ -35,6 +34,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(@NonNull ChannelRegistration registration) {
-        registration.interceptors(stompJwtChannelInterceptor);
+        registration.interceptors(stompAuthChannelInterceptor);
     }
 }

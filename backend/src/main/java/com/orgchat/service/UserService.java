@@ -1,6 +1,6 @@
 package com.orgchat.service;
 
-import com.orgchat.dto.UserSummaryDto;
+import com.orgchat.dto.UserSummaryDTO;
 import com.orgchat.model.User;
 import com.orgchat.repository.UserRepository;
 import org.slf4j.Logger;
@@ -49,16 +49,16 @@ public class UserService {
         return users;
     }
 
-    public List<UserSummaryDto> findAllSummaries() {
-        List<UserSummaryDto> summaries = userRepository.findAll().stream()
+    public List<UserSummaryDTO> findAllSummaries() {
+        List<UserSummaryDTO> summaries = userRepository.findAll().stream()
                 .map(this::toSummary)
                 .collect(Collectors.toList());
         log.info("Fetched all user summaries, count: {}", summaries.size());
         return summaries;
     }
 
-    public UserSummaryDto toSummary(User user) {
-        return UserSummaryDto.builder()
+    public UserSummaryDTO toSummary(User user) {
+        return UserSummaryDTO.builder()
                 .merID(user.getMerID())
                 .displayName(user.getDisplayName())
                 .avatarUrl(user.getAvatarUrl())
