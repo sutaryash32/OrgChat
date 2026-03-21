@@ -1,6 +1,8 @@
-# 🔐 OrgChat — Secure Organizational Messaging
+# � OrgChat — The Telegram of Your Organization
 
-A modern **real-time messaging platform** built for organizational communication with secure media sharing capabilities. Built with Spring Boot, Angular, MongoDB, and WebSockets.
+**OrgChat is the Telegram of your organization** — lightweight, secure, and identity-bound to merID, enabling trusted P2P communication without personal contact exchange. Built for **media-first sharing** with chat baked in for collaboration, entirely exclusive to your organization.
+
+> **The fastest, most secure way to share files inside your org, with chat to support it.**
 
 **Status:** Production Ready | **Version:** 0.0.1
 
@@ -8,6 +10,7 @@ A modern **real-time messaging platform** built for organizational communication
 
 ## 📋 Table of Contents
 
+- [Positioning](#-positioning)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [System Architecture](#-system-architecture)
@@ -21,30 +24,54 @@ A modern **real-time messaging platform** built for organizational communication
 
 ---
 
+## 🎯 Positioning
+
+### Why OrgChat?
+
+**Media-first. Organization-exclusive. Identity-bound.**
+
+OrgChat is purpose-built for secure file sharing within your organization — lightweight, fast, and tied to verified merID identities. No personal contact exchange. No overhead. Just effortless collaboration.
+
+**Key Differentiation:**
+- 🎯 **Media-First** — The core experience is effortless file exchange of any size, not just chat
+- 🔐 **Identity-Bound to merID** — Every interaction is tied to a verified Member Entity Reference ID
+- ⚡ **Zero Overhead** — No channels, no meetings, no noise — pure P2P collaboration
+- 🏢 **Organization-Exclusive** — Secure, professional space where everyone's verified
+- 💬 **Chat Built-In** — Supporting communication, not the primary focus
+
+While giants dominate chat-first collaboration, **OrgChat owns the media-first positioning** — the fastest, most secure way to share files within your organization.
+
+---
+
 ## ✨ Features
 
-### Core Messaging
-- ✅ **Real-time Chat** — Instant messaging via WebSocket (STOMP)
-- ✅ **Multi-user Support** — Contact management with mate requests
-- ✅ **Message History** — Persistent conversation records
-- ✅ **Theme Support** — Dark/Light mode UI
-
-### Media & File Handling
+### 📤 Media-First File Sharing (Core)
 - ✅ **Secure Media Upload** — Support for images, videos, documents (up to 500MB)
-- ✅ **Media Preview** — In-app media viewing
-- ✅ **File Management** — Download and delete capabilities
+- ✅ **Effortless Exchange** — Drag-and-drop file sharing in conversations
+- ✅ **Media Preview** — In-app media viewing without leaving the app
+- ✅ **File Management** — Download, save, and delete capabilities
+- ✅ **Any Size, Any Type** — No artificial file type restrictions
 
-### Security & Authentication
-- ✅ **Google OAuth2 SSO** — Single Sign-On integration
+### 💬 Real-time Chat (Supporting Feature)
+- ✅ **Real-time Messaging** — Instant messaging via WebSocket (STOMP)
+- ✅ **Multi-user Support** — Contact management with mate requests
+- ✅ **Message History** — Persistent conversation records with context
+- ✅ **Contextual Communication** — Chat tied directly to file exchanges
+
+### 🔐 Security & Organization-Exclusive Access
+- ✅ **Google OAuth2 SSO** — Single Sign-On integration with your organization
+- ✅ **merID Identity Binding** — Verified, unique organizational identifier for each user
 - ✅ **JWT Tokens** — Stateless authentication with refresh tokens
 - ✅ **WebSocket Security** — STOMP endpoint protection
-- ✅ **CORS Protection** — Configurable origin restrictions
+- ✅ **End-to-End Verification** — Know exactly who you're communicating with
+- ✅ **CORS Protection** — Configurable origin restrictions for organization only
 
-### User Experience
-- ✅ **Human-readable User IDs** — MerID system (vs ObjectIds)
-- ✅ **User Search** — Find contacts by MerID
+### 🎨 User Experience
+- ✅ **Human-readable User IDs** — merID system (vs ObjectIds)
+- ✅ **User Search** — Find contacts instantly by merID
+- ✅ **Dark/Light Theme** — Adaptive UI based on preference
+- ✅ **Responsive Design** — Seamless experience across devices
 - ✅ **Database Auto-migration** — Automatic data sanitization on startup
-- ✅ **Responsive Design** — Mobile-friendly Angular UI
 
 ---
 
