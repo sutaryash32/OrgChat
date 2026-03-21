@@ -49,16 +49,16 @@
       @if (searchNotFound) {
         <div class="search-not-found">User not found by merID</div>
       }
-      @if (searchResult && isSearchResultNew()) {
+      @if (searchResult) {
         <div class="search-result-card">
-          <div class="contact-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;">
+          <div class="contact-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; flex-shrink: 0;">
             {{ searchResult.displayName.charAt(0).toUpperCase() }}
           </div>
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 500; font-size: 0.9rem;">{{ searchResult.displayName }}</div>
-            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 2px;">{{ searchResult.merID }}</div>
+          <div class="search-result-info">
+            <span class="search-result-name">{{ searchResult.displayName }}</span>
+            <span class="search-result-merid">{{ searchResult.merID }}</span>
           </div>
-          <button class="add-btn" (click)="selectConversation(createConversationFromSearchResult())">Start Chat</button>
+          <button class="add-btn" style="flex-shrink: 0;" (click)="startChatFromSearch()">Start Chat</button>
         </div>
       }
     </div>
@@ -163,11 +163,17 @@
               [class.removing]="removingMessageIds().has(msg.id)"
               [attr.data-message-id]="msg.id"
             >
-              <div class="message-bubble" [class.just-edited]="justEditedId() === msg.id" [class.editing]="editingMessageId === msg.id">
-                <p class="message-text">{{ msg.content }}</p>
+              <!-- TEXT ONLY bubble -->
+              @if (!msg.mediaId) {
+                <div class="message-bubble bubble-text" [class.just-edited]="justEditedId() === msg.id" [class.editing]="editingMessageId === msg.id">
+                  <p class="message-text">{{ msg.content }}</p>
+                </div>
+              }
 
-                <!-- Media rendering -->
-                @if (msg.mediaId) {
+              <!-- MEDIA bubble (with optional caption) -->
+              @if (msg.mediaId) {
+                <div class="message-bubble bubble-media" [class.just-edited]="justEditedId() === msg.id" [class.editing]="editingMessageId === msg.id">
+
                   @switch (getMediaCategory(msg.mediaId)) {
                     @case ('loading') {
                       <div class="media-skeleton"></div>
@@ -176,56 +182,57 @@
                       <div class="media-image-card" (click)="openMedia(msg.mediaId)">
                         <img class="media-thumb"
                           [src]="getMediaThumbUrl(msg.mediaId)"
-                          [alt]="mediaCache[msg.mediaId]?.fileName">
-                        <div class="media-card-footer">
-                          <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
-                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
-                        </div>
+                          [alt]="mediaCache[msg.mediaId]!.fileName">
                       </div>
+                      @if (msg.content && msg.content.trim()) {
+                        <p class="media-caption">{{ msg.content }}</p>
+                      } @else {
+                        <div class="media-meta-footer">
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]!.fileName }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]!.fileSize || 0) }}</span>
+                        </div>
+                      }
                     }
                     @case ('video') {
                       <video class="media-video" controls preload="metadata">
                         <source [src]="getMediaThumbUrl(msg.mediaId)">
                         Your browser does not support the video tag.
                       </video>
-                      <div class="media-card-footer">
-                        <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
-                        <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
-                      </div>
+                      @if (msg.content && msg.content.trim()) {
+                        <p class="media-caption">{{ msg.content }}</p>
+                      } @else {
+                        <div class="media-meta-footer">
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]!.fileName }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]!.fileSize || 0) }}</span>
+                        </div>
+                      }
                     }
                     @case ('document') {
                       <div class="media-file-card" [attr.data-type]="getDocumentIconType(msg.mediaId)">
                         <div class="media-file-icon-wrap" [class]="'icon-' + getDocumentIconType(msg.mediaId)">
                           @switch (getDocumentIconType(msg.mediaId)) {
-                            @case ('pdf') {
-                              <span>PDF</span>
-                            }
-                            @case ('word') {
-                              <span>DOC</span>
-                            }
-                            @case ('excel') {
-                              <span>XLS</span>
-                            }
-                            @case ('ppt') {
-                              <span>PPT</span>
-                            }
-                            @default {
-                              <span>FILE</span>
-                            }
+                            @case ('pdf') { <span>PDF</span> }
+                            @case ('word') { <span>DOC</span> }
+                            @case ('excel') { <span>XLS</span> }
+                            @case ('ppt') { <span>PPT</span> }
+                            @default { <span>FILE</span> }
                           }
                         </div>
                         <div class="media-file-info">
-                          <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
-                          <span class="media-filetype">{{ mediaCache[msg.mediaId]?.fileType }}</span>
-                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]!.fileName }}</span>
+                          <span class="media-filetype">{{ mediaCache[msg.mediaId]!.fileType }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]!.fileSize || 0) }}</span>
                         </div>
                         <a class="media-download-btn"
                           [href]="getMediaThumbUrl(msg.mediaId)"
-                          [download]="mediaCache[msg.mediaId]?.fileName"
+                          [download]="mediaCache[msg.mediaId]!.fileName"
                           title="Download">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </a>
                       </div>
+                      @if (msg.content && msg.content.trim()) {
+                        <p class="media-caption">{{ msg.content }}</p>
+                      }
                     }
                     @case ('file') {
                       <div class="media-file-card">
@@ -233,20 +240,24 @@
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                         </div>
                         <div class="media-file-info">
-                          <span class="media-filename">{{ mediaCache[msg.mediaId]?.fileName }}</span>
-                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]?.fileSize || 0) }}</span>
+                          <span class="media-filename">{{ mediaCache[msg.mediaId]!.fileName }}</span>
+                          <span class="media-filesize">{{ mediaService.formatFileSize(mediaCache[msg.mediaId]!.fileSize || 0) }}</span>
                         </div>
                         <a class="media-download-btn"
                           [href]="getMediaThumbUrl(msg.mediaId)"
-                          [download]="mediaCache[msg.mediaId]?.fileName"
+                          [download]="mediaCache[msg.mediaId]!.fileName"
                           title="Download">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </a>
                       </div>
+                      @if (msg.content && msg.content.trim()) {
+                        <p class="media-caption">{{ msg.content }}</p>
+                      }
                     }
                   }
-                }
-              </div>
+
+                </div>
+              }
 
               @if (msg.senderId === currentUser?.merID) {
                 <button

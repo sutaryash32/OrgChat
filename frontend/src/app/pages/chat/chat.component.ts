@@ -136,31 +136,8 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.searchResult = user;
         this.searchNotFound = false;
         this.isSearching = false;
-
-        // Check if user already in conversations
-        const existing = this.conversations.find(c => c.partnerMerID === user.merID);
-        if (!existing) {
-          // Add temporarily for selection
-          const newConv: ConversationSummary = {
-            partnerMerID: user.merID,
-            partnerDisplayName: user.displayName,
-            partnerAvatarUrl: user.avatarUrl,
-            lastMessage: '',
-            lastTimestamp: new Date().toISOString(),
-            unreadCount: 0
-          };
-          this.conversations.unshift(newConv);
-        }
-
-        // Auto-select the user
-        this.selectConversation(existing || {
-          partnerMerID: user.merID,
-          partnerDisplayName: user.displayName,
-          partnerAvatarUrl: user.avatarUrl,
-          lastMessage: '',
-          lastTimestamp: new Date().toISOString(),
-          unreadCount: 0
-        });
+        // Do NOT auto-select or auto-open chat here
+        // User must click "Start Chat" button to open the chat window
       },
       error: (err) => {
         this.searchResult = null;
@@ -168,6 +145,44 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.isSearching = false;
       }
     });
+  }
+
+  startChatFromSearch(): void {
+    if (!this.searchResult) return;
+
+    const user = this.searchResult;
+
+    // Check if already in conversations list
+    const existing = this.conversations.find(c => c.partnerMerID === user.merID);
+
+    if (!existing) {
+      // Add to conversations list
+      const newConv: ConversationSummary = {
+        partnerMerID: user.merID,
+        partnerDisplayName: user.displayName,
+        partnerAvatarUrl: user.avatarUrl,
+        lastMessage: '',
+        lastTimestamp: new Date().toISOString(),
+        unreadCount: 0
+      };
+      this.conversations.unshift(newConv);
+      this.filteredConversations = [...this.conversations];
+    }
+
+    // NOW open the chat window
+    this.selectConversation(existing || {
+      partnerMerID: user.merID,
+      partnerDisplayName: user.displayName,
+      partnerAvatarUrl: user.avatarUrl,
+      lastMessage: '',
+      lastTimestamp: new Date().toISOString(),
+      unreadCount: 0
+    });
+
+    // Clear search
+    this.searchQuery = '';
+    this.searchResult = null;
+    this.searchNotFound = false;
   }
 
   filterConversations(): void {

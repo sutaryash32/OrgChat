@@ -1,0 +1,117 @@
+version: '3.9'
+
+services:
+  # MongoDB Database (Production)
+  mongodb:
+    image: mongo:7.0-alpine
+    container_name: orgchat-mongodb-prod
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: orgchat
+    volumes:
+      - mongodb_data_prod:/data/db
+      - mongodb_config_prod:/data/configdb
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orgchat-network-prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Backend Service (Production)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orgchat-backend-prod
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # MongoDB Configuration
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/orgchat?authSource=admin
+      SPRING_DATA_MONGODB_AUTO_INDEX_CREATION: "true"
+
+      # JWT Configuration (CHANGE THESE IN PRODUCTION!)
+      APP_JWT_SECRET: ${JWT_SECRET}
+      APP_JWT_EXPIRATION_MS: 86400000
+      APP_JWT_REFRESH_EXPIRATION_MS: 604800000
+
+      # CORS Configuration (restricted to production domain)
+      APP_CORS_ALLOWED_ORIGINS: https://${PRODUCTION_DOMAIN}
+
+      # OAuth2 Google Configuration
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: 183781504942-bkeaqdp7i1qlk3h4iendge0i0j406ua3.apps.googleusercontent.com
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: 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
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: https://${PRODUCTION_DOMAIN}/login/oauth2/code/google
+
+      # Frontend Configuration
+      APP_FRONTEND_REDIRECT_URL: https://${PRODUCTION_DOMAIN}/login
+
+      # Server Configuration
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: prod
+
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - orgchat-network-prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Frontend Service (Production)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        CONFIGURATION: production
+    container_name: orgchat-frontend-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - orgchat-network-prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  orgchat-network-prod:
+    driver: bridge
+
+volumes:
+  mongodb_data_prod:
+    driver: local
+  mongodb_config_prod:
+    driver: local

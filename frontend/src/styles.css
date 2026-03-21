@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* System fonts fallback (no Google Fonts import for offline Docker builds) */
+* {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 
 :root {
   /* Dark theme colors (default) */
@@ -33,11 +37,36 @@
   --accent-secondary: #7c3aed;
   --accent-hover: rgba(99, 102, 241, 0.1);
   --bubble-sent: linear-gradient(135deg, #6366f1, #7c3aed);
-  --bubble-received: #ffffff;
+  --bubble-received: #f0f0f5;
   --input-bg: #ffffff;
   --scrollbar: rgba(0, 0, 0, 0.1);
   --border-color: #e5e7eb;
   --text-secondary: rgba(0, 0, 0, 0.6);
+  /* Light mode overrides for hardcoded rgba(255,255,255,x) values in chat CSS */
+  --chat-text-muted: rgba(0, 0, 0, 0.4);
+  --chat-text-faint: rgba(0, 0, 0, 0.3);
+  --chat-text-hint: rgba(0, 0, 0, 0.5);
+  --chat-bg-item-hover: rgba(0, 0, 0, 0.04);
+  --chat-border-subtle: rgba(0, 0, 0, 0.06);
+  --unread-badge-bg: #6366f1;
+  --conversation-last-msg: rgba(0, 0, 0, 0.45);
+  --conversation-time: rgba(0, 0, 0, 0.35);
+  --empty-text: rgba(0, 0, 0, 0.3);
+  --search-not-found: rgba(0, 0, 0, 0.4);
+}
+
+/* Dark theme extra vars */
+:root {
+  --chat-text-muted: rgba(255, 255, 255, 0.4);
+  --chat-text-faint: rgba(255, 255, 255, 0.3);
+  --chat-text-hint: rgba(255, 255, 255, 0.5);
+  --chat-bg-item-hover: rgba(255, 255, 255, 0.05);
+  --chat-border-subtle: rgba(255, 255, 255, 0.06);
+  --unread-badge-bg: #6366f1;
+  --conversation-last-msg: rgba(255, 255, 255, 0.35);
+  --conversation-time: rgba(255, 255, 255, 0.3);
+  --empty-text: rgba(255, 255, 255, 0.25);
+  --search-not-found: rgba(255, 255, 255, 0.3);
 }
 
 * {

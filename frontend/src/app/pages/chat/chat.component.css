@@ -825,6 +825,94 @@
 
 .message-text {
   margin: 0;
+  padding-bottom: 2px;
+}
+
+/* Text-only bubble — normal padding */
+.bubble-text {
+  padding: 10px 14px;
+}
+
+/* Media bubble — no padding, media fills edge to edge */
+.bubble-media {
+  padding: 0;
+  overflow: hidden;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.sent .bubble-media {
+  background: transparent !important;
+}
+
+.received .bubble-media {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Image card inside media bubble — flush, no margin */
+.bubble-media .media-image-card {
+  margin: 0;
+  border-radius: 12px;
+  max-width: 260px;
+}
+
+.bubble-media .media-video {
+  margin: 0;
+  border-radius: 12px;
+  max-width: 280px;
+}
+
+.bubble-media .media-file-card {
+  margin: 0;
+  border-radius: 12px;
+  min-width: 240px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
+/* Caption below media */
+.media-caption {
+  margin: 0;
+  padding: 6px 12px 8px;
+  font-size: 0.9rem;
+  background: var(--bubble-sent);
+  border-radius: 0 0 12px 12px;
+  color: white;
+}
+
+.received .media-caption {
+  background: var(--bubble-received);
+  color: var(--text-primary);
+  border-top: 1px solid var(--border);
+}
+
+/* Filename/size footer below image when no caption */
+.media-meta-footer {
+  padding: 5px 10px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0,0,0,0.35);
+  border-radius: 0 0 12px 12px;
+}
+
+.media-meta-footer .media-filename {
+  font-size: 0.75rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+  color: rgba(255,255,255,0.85);
+}
+
+.media-meta-footer .media-filesize {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.45);
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .sent .message-bubble {
@@ -983,7 +1071,7 @@
   background: rgba(255, 255, 255, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   max-width: 220px;
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .media-image-card:hover {
@@ -1347,7 +1435,7 @@
 }
 
 .conversation-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--chat-bg-item-hover);
   transform: translateX(4px);
 }
 
@@ -1373,7 +1461,7 @@
 
 .conversation-last-msg {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--conversation-last-msg);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1390,7 +1478,7 @@
 
 .conversation-time {
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--conversation-time);
 }
 
 .unread-badge {
@@ -1408,15 +1496,43 @@
 }
 
 .search-result-card {
-  margin: 0 8px 8px;
-  border-radius: 10px;
+  margin: 8px 12px 10px;
+  border-radius: 12px;
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.15);
-  padding: 10px 14px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   animation: slideDown 0.2s ease-out;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.search-result-card .search-result-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.search-result-card .search-result-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+
+.search-result-card .search-result-merid {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes slideDown {
@@ -1433,14 +1549,14 @@
 .search-not-found {
   text-align: center;
   padding: 16px 20px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--search-not-found);
   font-size: 0.8rem;
 }
 
 .empty-inbox {
   text-align: center;
   padding: 40px 20px;
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--empty-text);
   font-size: 0.82rem;
   line-height: 1.6;
 }

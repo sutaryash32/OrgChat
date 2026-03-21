@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build directories
+target/
+*.class
+*.jar
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+*.swp
+*.swo
+
+# Maven
+.m2/
+
+# Documentation
+README.md
+LICENSE.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Other
+.env
+docker-compose.yml
+Dockerfile
+nginx.conf

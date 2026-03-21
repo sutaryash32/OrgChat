@@ -28,15 +28,23 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     }
 
     @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null) {
+            return message;
+        }
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authHeader = accessor.getFirstNativeHeader("Authorization");
 
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.debug("WebSocket CONNECT without valid Authorization header");
+                return message;
+            }
 
+            String token = authHeader.substring(7);
+            try {
                 if (jwtUtil.isTokenValid(token)) {
                     String merID = jwtUtil.extractMerID(token);
                     UsernamePasswordAuthenticationToken auth =
@@ -44,12 +52,12 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                                     merID, null,
                                     List.of(new SimpleGrantedAuthority("ROLE_USER")));
                     accessor.setUser(auth);
-                    log.info("WebSocket CONNECT authenticated for user: '{}'", merID);
+                    log.info("WebSocket CONNECT authenticated for user: {}", merID);
                 } else {
-                    log.warn("WebSocket CONNECT rejected — invalid JWT");
+                    log.warn("WebSocket CONNECT rejected — invalid JWT token");
                 }
-            } else {
-                log.debug("WebSocket CONNECT without Authorization header");
+            } catch (Exception e) {
+                log.warn("WebSocket CONNECT JWT validation error: {}", e.getMessage());
             }
         }
 
