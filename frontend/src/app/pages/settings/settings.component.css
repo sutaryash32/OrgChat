@@ -7,6 +7,24 @@
   min-height: 100vh;
 }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.page-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.page-header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
 .back-btn {
   background: none;
   border: 1px solid var(--border-color);

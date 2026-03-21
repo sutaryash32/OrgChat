@@ -66,7 +66,8 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
-export interface PageResponse<T> {
+export interface PageResponse<T>
+{
   content: T[];
   totalPages: number;
   totalElements: number;
