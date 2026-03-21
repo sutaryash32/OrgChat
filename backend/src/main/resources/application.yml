@@ -12,18 +12,18 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: 500MB
+      max-request-size: 500MB
 
   security:
     oauth2:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
-            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            client-id: 183781504942-bkeaqdp7i1qlk3h4iendge0i0j406ua3.apps.googleusercontent.com
+            client-secret: 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
             scope: openid, profile, email
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: "http://localhost:8080/login/oauth2/code/google"
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
@@ -34,10 +34,22 @@ spring:
 # Custom application properties
 app:
   jwt:
-    secret: ${JWT_SECRET:OrgChatSuperSecretKeyThatIsAtLeast256BitsLongForHS256Algorithm2024!}
-    expiration-ms: 86400000          # 24 hours
-    refresh-expiration-ms: 604800000 # 7 days
+    secret: ${JWT_SECRET:OrgChatPrototypeSuperSecretKeyDevMode2026VolatileFix}
+    expiration-ms: 86400000
+    refresh-expiration-ms: 604800000
   cors:
     allowed-origins: http://localhost:4200
   frontend:
-    redirect-url: http://localhost:4200/chat
+    redirect-url: http://localhost:4200/login
+
+# Logging configuration
+logging:
+  level:
+    root: WARN
+    com.orgchat: DEBUG
+    com.orgchat.security: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.springframework.data.mongodb: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

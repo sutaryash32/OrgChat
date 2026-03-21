@@ -1,34 +1,39 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { Media } from './models';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class MediaService {
+  private http = inject(HttpClient);
+  private apiUrl = `${environment.apiUrl}/media`;
 
-  constructor(private http: HttpClient) {}
-
-  upload(file: File): Observable<Media> {
+  upload(file: File, uploaderId: string): Observable<Media> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<Media>(`${environment.apiUrl}/media/upload`, formData);
-  }
-
-  getDownloadUrl(mediaId: string): string {
-    return `${environment.apiUrl}/media/download/${mediaId}`;
-  }
-
-  delete(mediaId: string): Observable<void> {
-    return this.http.delete<void>(`${environment.apiUrl}/media/delete/${mediaId}`);
-  }
-
-  getMediaByUser(merID: string): Observable<Media[]> {
-    return this.http.get<Media[]>(`${environment.apiUrl}/media/user/${merID}`);
+    formData.append('uploaderId', uploaderId);
+    return this.http.post<Media>(`${this.apiUrl}/upload`, formData);
   }
 
   getMediaById(id: string): Observable<Media> {
-    return this.http.get<Media>(`${environment.apiUrl}/media/download/${id}`);
+    return this.http.get<Media>(`${this.apiUrl}/info/${id}`);
+  }
+
+  getMediaInfo(id: string): Observable<Media> {
+    return this.http.get<Media>(`${this.apiUrl}/info/${id}`);
+  }
+
+  getDownloadUrl(id: string): string {
+    return `${this.apiUrl}/download/${id}`;
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/delete/${id}`);
+  }
+
+  getUserMedia(merID: string): Observable<Media[]> {
+    return this.http.get<Media[]>(`${this.apiUrl}/user/${merID}`);
   }
 
   formatFileSize(bytes: number): string {
@@ -46,4 +51,31 @@ export class MediaService {
   isVideo(fileType: string): boolean {
     return fileType?.startsWith('video/') ?? false;
   }
+
+  getFileCategory(fileType: string): 'image' | 'video' | 'document' | 'file' {
+    if (!fileType) return 'file';
+    if (fileType.startsWith('image/')) return 'image';
+    if (fileType.startsWith('video/')) return 'video';
+    if (
+      fileType.includes('pdf') ||
+      fileType.includes('word') ||
+      fileType.includes('excel') ||
+      fileType.includes('spreadsheet') ||
+      fileType.includes('presentation') ||
+      fileType.includes('powerpoint') ||
+      fileType.includes('document') ||
+      fileType.startsWith('text/')
+    ) return 'document';
+    return 'file';
+  }
+
+  getDocumentIconType(fileType: string): 'pdf' | 'word' | 'excel' | 'ppt' | 'text' | 'document' {
+    if (fileType.includes('pdf')) return 'pdf';
+    if (fileType.includes('word') || fileType.includes('document')) return 'word';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'excel';
+    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return 'ppt';
+    if (fileType.startsWith('text/')) return 'text';
+    return 'document';
+  }
 }
+

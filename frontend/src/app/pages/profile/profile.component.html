@@ -1,0 +1,34 @@
+<div class="profile-container">
+  <div class="page-header">
+    <img src="/OrgChat.png" alt="OrgChat Logo" class="page-logo"/>
+    <h1>Profile</h1>
+  </div>
+  <button class="back-btn" (click)="goBack()">← Back to Chat</button>
+
+  @if (loading) {
+    <div class="loading">Loading profile...</div>
+  } @else if (user) {
+    <div class="profile-header">
+      <div class="avatar-large">{{ user.displayName.charAt(0).toUpperCase() }}</div>
+      <h1>{{ user.displayName }}</h1>
+      <p class="email">{{ user.email }}</p>
+      <p class="merid" style="font-size: 0.9em; color: #666;">merId : {{ user.merID }}</p>
+    </div>
+
+    <div class="media-section">
+      <h2>Media Uploads</h2>
+      @if (media.length > 0) {
+        <div class="media-grid">
+          @for (m of media; track m.id) {
+            <div class="media-item">
+              <p>{{ m.fileName }}</p>
+              <span>{{ mediaService.formatFileSize(m.fileSize) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p>No media uploads</p>
+      }
+    </div>
+  }
+</div>

@@ -39,6 +39,9 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -46,7 +49,8 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
-                                "/ws/**"
+                                "/ws/**",
+                                "/api/media/download/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

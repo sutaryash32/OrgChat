@@ -1,0 +1,66 @@
+package com.orgchat.security;
+
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+public class StompJwtChannelInterceptor implements ChannelInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(StompJwtChannelInterceptor.class);
+
+    private final JwtUtil jwtUtil;
+
+    public StompJwtChannelInterceptor(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor == null) {
+            return message;
+        }
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            String authHeader = accessor.getFirstNativeHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.warn("WebSocket CONNECT missing Authorization header");
+                return message;
+            }
+
+            String token = authHeader.substring(7);
+            try {
+                if (jwtUtil.isTokenValid(token)) {
+                    String merID = jwtUtil.extractMerID(token);
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            merID,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                    );
+                    accessor.setUser(auth);
+                    log.debug("WebSocket authenticated for user: {}", merID);
+                }
+            } catch (ExpiredJwtException e) {
+                log.warn("WebSocket CONNECT with expired JWT");
+            } catch (JwtException | IllegalArgumentException e) {
+                log.warn("WebSocket CONNECT JWT validation failed: {}", e.getMessage());
+            }
+        }
+
+        return message;
+    }
+}

@@ -34,4 +34,7 @@ public class Message {
 
     @Builder.Default
     private boolean read = false;
+
+    @Builder.Default
+    private boolean isEdited = false;
 }

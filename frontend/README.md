@@ -57,3 +57,13 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Backend Security Configuration
+
+The backend requires a strong JWT secret to start. Set the environment variable before running Spring Boot:
+
+```bash
+JWT_SECRET=<at least 32 random characters>
+```
+
+If `JWT_SECRET` is missing or too short, backend startup will fail by design.

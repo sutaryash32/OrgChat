@@ -8,6 +8,12 @@ export interface User {
   ssoProvider: string;
 }
 
+export interface UserSummary {
+  merID: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
 export interface Message {
   id: string;
   senderId: string;
@@ -17,6 +23,7 @@ export interface Message {
   mediaId?: string;
   timestamp: string;
   read: boolean;
+  action?: 'SEND' | 'EDIT' | 'DELETE';
 }
 
 export interface Media {
@@ -30,6 +37,26 @@ export interface Media {
   expiry?: string;
 }
 
+export interface MediaCache {
+  [mediaId: string]: Media;
+}
+
+export interface MultiMessageRequest {
+  recipientIds: string[];
+  content?: string;
+  mediaId?: string;
+}
+
+export interface ConversationSummary {
+  partnerMerID: string;
+  partnerDisplayName: string;
+  partnerAvatarUrl?: string;
+  lastMessage: string;
+  lastMediaId?: string;
+  lastTimestamp: string;
+  unreadCount: number;
+}
+
 export interface AuthResponse {
   token: string;
   refreshToken: string;
@@ -39,7 +66,8 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
-export interface PageResponse<T> {
+export interface PageResponse<T>
+{
   content: T[];
   totalPages: number;
   totalElements: number;

@@ -1,0 +1,53 @@
+<div class="media-preview-container">
+  <div class="page-header">
+    <img src="/OrgChat.png" alt="OrgChat Logo" class="page-logo"/>
+    <h1>Media Preview</h1>
+  </div>
+  <button class="back-btn" (click)="goBack()">← Back to Chat</button>
+
+  @if (loading) {
+    <div class="loading">Loading media...</div>
+  } @else if (error) {
+    <div class="error">
+      <p>File not found or could not be loaded.</p>
+      <button class="btn btn-secondary" (click)="goBack()">Return to Chat</button>
+    </div>
+  } @else if (media) {
+    <div class="media-info">
+      <h1>{{ media.fileName }}</h1>
+      <p><strong>Type:</strong> {{ media.fileType }}</p>
+      <p><strong>Size:</strong> {{ mediaService.formatFileSize(media.fileSize) }}</p>
+      <p><strong>Uploaded:</strong> {{ media.timestamp | date: 'short' }}</p>
+
+      <div class="media-actions">
+        <a [href]="downloadUrl" class="btn btn-primary" download>
+          ⬇ Download
+        </a>
+        <button class="btn btn-danger" (click)="deleteMedia()">
+          🗑 Delete
+        </button>
+      </div>
+    </div>
+
+    @if (mediaService.isImage(media.fileType)) {
+      <div class="media-display">
+        <img [src]="downloadUrl" alt="{{ media.fileName }}"/>
+      </div>
+    } @else if (mediaService.isVideo(media.fileType)) {
+      <div class="media-display">
+        <video controls>
+          <source [src]="downloadUrl" [type]="media.fileType"/>
+          Your browser does not support this video format.
+        </video>
+      </div>
+    } @else {
+      <div class="media-display">
+        <div class="file-icon">
+          📄
+          <p>{{ media.fileName }}</p>
+        </div>
+      </div>
+    }
+  }
+</div>
+

@@ -1,0 +1,28 @@
+<div class="settings-container">
+  <div class="page-header">
+    <img src="/OrgChat.png" alt="OrgChat Logo" class="page-logo"/>
+    <h1>Settings</h1>
+  </div>
+  <button class="back-btn" (click)="goBack()">← Back to Chat</button>
+
+  <div class="settings-card">
+    <h2>Account</h2>
+    <div class="setting-item">
+      <label>Display Name </label>
+      <span>{{ currentUser?.displayName }}</span>
+    </div>
+    <div class="setting-item">
+      <label>Account ID</label>
+      <span>{{ currentUser?.merID }}</span>
+    </div>
+    <div class="setting-item">
+      <label>Email</label>
+      <span>{{ currentUser?.email }}</span>
+    </div>
+  </div>
+
+  <div class="settings-card danger">
+    <h2>Security</h2>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </div>
+</div>

@@ -1,0 +1,103 @@
+.settings-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.page-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.page-header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.back-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background-color: rgba(99, 102, 241, 0.1);
+  border-color: var(--accent-primary);
+}
+
+h1 {
+  font-size: 2rem;
+  margin: 24px 0;
+}
+
+.settings-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.settings-card h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setting-item span {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.settings-card.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.7);
+}

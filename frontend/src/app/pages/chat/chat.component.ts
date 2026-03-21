@@ -1,527 +1,635 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, HostListener, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ChatService } from '../../core/chat.service';
-import { MediaService } from '../../core/media.service';
 import { UserService } from '../../core/user.service';
+import { MediaService } from '../../core/media.service';
 import { WebSocketService } from '../../core/websocket.service';
-import { Message, User, Media } from '../../core/models';
-import { environment } from '../../../environments/environment';
+import { Message, User, UserSummary, Media, ConversationSummary } from '../../core/models';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
-  template: `
-    <div class="chat-layout">
-      <!-- Sidebar -->
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <div class="user-info">
-            <div class="avatar">{{ currentUser?.displayName?.charAt(0)?.toUpperCase() || '?' }}</div>
-            <div class="user-details">
-              <span class="user-name">{{ currentUser?.displayName }}</span>
-              <span class="user-merid">{{ currentUser?.merID }}</span>
-            </div>
-          </div>
-          <button class="icon-btn" (click)="logout()" title="Logout" id="logout-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input type="text" placeholder="Search contacts..." [(ngModel)]="searchQuery"
-                 (input)="filterUsers()" id="search-input"/>
-        </div>
-
-        <div class="contacts-list">
-          @for (user of filteredUsers; track user.merID) {
-            <div class="contact-item" [class.active]="selectedUser?.merID === user.merID"
-                 (click)="selectUser(user)" [id]="'contact-' + user.merID">
-              <div class="contact-avatar">{{ user.displayName?.charAt(0)?.toUpperCase() }}</div>
-              <div class="contact-info">
-                <span class="contact-name">{{ user.displayName }}</span>
-                <span class="contact-merid">{{ user.merID }}</span>
-              </div>
-            </div>
-          }
-          @if (filteredUsers.length === 0) {
-            <div class="no-contacts">
-              <p>No contacts found</p>
-            </div>
-          }
-        </div>
-
-        <div class="sidebar-nav">
-          <button class="nav-btn" [routerLink]="['/profile', currentUser?.merID]" id="nav-profile">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            Profile
-          </button>
-          <button class="nav-btn" [routerLink]="['/settings']" id="nav-settings">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-            Settings
-          </button>
-        </div>
-      </aside>
-
-      <!-- Chat Area -->
-      <main class="chat-area">
-        @if (selectedUser) {
-          <!-- Chat Header -->
-          <div class="chat-header">
-            <div class="chat-header-info">
-              <div class="header-avatar">{{ selectedUser.displayName?.charAt(0)?.toUpperCase() }}</div>
-              <div>
-                <span class="header-name">{{ selectedUser.displayName }}</span>
-                <span class="header-merid">{{ selectedUser.merID }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Messages -->
-          <div class="messages-container" #messagesContainer>
-            @for (msg of messages; track msg.id) {
-              <div class="message" [class.sent]="msg.senderId === currentUser?.merID"
-                   [class.received]="msg.senderId !== currentUser?.merID">
-                <div class="message-bubble">
-                  @if (msg.mediaId) {
-                    <div class="message-media" (click)="openMedia(msg.mediaId!)">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                      </svg>
-                      <span>Media attachment</span>
-                    </div>
-                  }
-                  @if (msg.content) {
-                    <p class="message-text">{{ msg.content }}</p>
-                  }
-                  <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
-                </div>
-              </div>
-            }
-            @if (messages.length === 0) {
-              <div class="empty-chat">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                </svg>
-                <p>Start a conversation with {{ selectedUser.displayName }}</p>
-              </div>
-            }
-          </div>
-
-          <!-- Input Area -->
-          <div class="input-area">
-            <button class="icon-btn attach-btn" (click)="fileInput.click()" title="Attach file" id="attach-btn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-              </svg>
-            </button>
-            <input type="file" #fileInput (change)="onFileSelected($event)" style="display:none"/>
-
-            @if (selectedFile) {
-              <div class="file-preview">
-                <span>📎 {{ selectedFile.name }}</span>
-                <button class="remove-file" (click)="removeFile()">✕</button>
-              </div>
-            }
-
-            <input type="text" class="message-input" placeholder="Type a message..."
-                   [(ngModel)]="messageText" (keyup.enter)="sendMessage()" id="message-input"/>
-            <button class="send-btn" (click)="sendMessage()" [disabled]="!messageText && !selectedFile" id="send-btn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
-          </div>
-        } @else {
-          <!-- No chat selected -->
-          <div class="no-chat-selected">
-            <div class="no-chat-icon">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </div>
-            <h2>Welcome to OrgChat</h2>
-            <p>Select a contact to start chatting</p>
-          </div>
-        }
-      </main>
-    </div>
-  `,
-  styles: [`
-    .chat-layout {
-      display: flex;
-      height: 100vh;
-      background: #0f0f17;
-      color: #e0e0e0;
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 320px;
-      background: rgba(255,255,255,0.03);
-      border-right: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sidebar-header {
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .user-info { display: flex; align-items: center; gap: 12px; }
-
-    .avatar {
-      width: 40px; height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600; font-size: 1rem; color: #fff;
-    }
-
-    .user-details { display: flex; flex-direction: column; }
-    .user-name { font-weight: 600; font-size: 0.9rem; }
-    .user-merid { color: rgba(255,255,255,0.4); font-size: 0.75rem; }
-
-    .icon-btn {
-      background: none; border: none; color: rgba(255,255,255,0.5);
-      cursor: pointer; padding: 8px; border-radius: 8px;
-      transition: all 0.2s;
-    }
-    .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
-
-    .search-box {
-      margin: 16px 20px;
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.06); border-radius: 10px;
-      padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05);
-    }
-    .search-box svg { color: rgba(255,255,255,0.3); flex-shrink: 0; }
-    .search-box input {
-      background: none; border: none; outline: none;
-      color: #e0e0e0; font-size: 0.85rem; width: 100%;
-      font-family: 'Inter', sans-serif;
-    }
-    .search-box input::placeholder { color: rgba(255,255,255,0.3); }
-
-    .contacts-list { flex: 1; overflow-y: auto; padding: 0 8px; }
-
-    .contact-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px; border-radius: 12px; cursor: pointer;
-      transition: all 0.2s; margin-bottom: 2px;
-    }
-    .contact-item:hover { background: rgba(255,255,255,0.05); }
-    .contact-item.active { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.2); }
-
-    .contact-avatar {
-      width: 42px; height: 42px; border-radius: 12px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600; color: #fff; flex-shrink: 0;
-    }
-
-    .contact-info { display: flex; flex-direction: column; min-width: 0; }
-    .contact-name { font-weight: 500; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .contact-merid { color: rgba(255,255,255,0.35); font-size: 0.75rem; }
-
-    .no-contacts { text-align: center; padding: 40px 0; color: rgba(255,255,255,0.3); }
-
-    .sidebar-nav {
-      padding: 12px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex; gap: 8px;
-    }
-
-    .nav-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 10px; border: none; border-radius: 10px;
-      background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6);
-      font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
-      font-family: 'Inter', sans-serif;
-    }
-    .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-
-    /* Chat Area */
-    .chat-area { flex: 1; display: flex; flex-direction: column; }
-
-    .chat-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: rgba(255,255,255,0.02);
-    }
-
-    .chat-header-info { display: flex; align-items: center; gap: 12px; }
-
-    .header-avatar {
-      width: 38px; height: 38px; border-radius: 10px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600; color: #fff;
-    }
-    .header-name { font-weight: 600; font-size: 0.95rem; display: block; }
-    .header-merid { color: rgba(255,255,255,0.35); font-size: 0.75rem; }
-
-    /* Messages */
-    .messages-container {
-      flex: 1; overflow-y: auto; padding: 20px 24px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-
-    .message { display: flex; }
-    .message.sent { justify-content: flex-end; }
-    .message.received { justify-content: flex-start; }
-
-    .message-bubble {
-      max-width: 65%; padding: 12px 16px; border-radius: 16px;
-      animation: msgIn 0.3s ease-out;
-    }
-
-    @keyframes msgIn {
-      from { opacity: 0; transform: translateY(10px) scale(0.95); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .sent .message-bubble {
-      background: linear-gradient(135deg, #6366f1, #7c3aed);
-      border-bottom-right-radius: 4px;
-    }
-
-    .received .message-bubble {
-      background: rgba(255,255,255,0.08);
-      border-bottom-left-radius: 4px;
-    }
-
-    .message-text { margin: 0; font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
-    .message-time {
-      display: block; font-size: 0.65rem; margin-top: 4px;
-      opacity: 0.5; text-align: right;
-    }
-
-    .message-media {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 12px; background: rgba(255,255,255,0.1);
-      border-radius: 8px; margin-bottom: 6px; cursor: pointer;
-      transition: background 0.2s;
-    }
-    .message-media:hover { background: rgba(255,255,255,0.15); }
-    .message-media span { font-size: 0.8rem; }
-
-    .empty-chat {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      color: rgba(255,255,255,0.3); gap: 12px;
-    }
-    .empty-chat p { margin: 0; }
-
-    /* Input Area */
-    .input-area {
-      padding: 16px 24px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex; align-items: center; gap: 12px;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .message-input {
-      flex: 1; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px; background: rgba(255,255,255,0.05);
-      color: #e0e0e0; font-size: 0.9rem; outline: none;
-      transition: border-color 0.2s; font-family: 'Inter', sans-serif;
-    }
-    .message-input:focus { border-color: rgba(99,102,241,0.5); }
-    .message-input::placeholder { color: rgba(255,255,255,0.3); }
-
-    .send-btn {
-      width: 44px; height: 44px; border: none; border-radius: 12px;
-      background: linear-gradient(135deg, #6366f1, #7c3aed);
-      color: #fff; cursor: pointer; display: flex;
-      align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
-    .send-btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
-    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .file-preview {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 12px; background: rgba(99,102,241,0.15);
-      border-radius: 8px; font-size: 0.8rem;
-    }
-    .remove-file {
-      background: none; border: none; color: rgba(255,255,255,0.5);
-      cursor: pointer; font-size: 0.9rem;
-    }
-
-    .attach-btn { flex-shrink: 0; }
-
-    /* No chat selected */
-    .no-chat-selected {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      color: rgba(255,255,255,0.3); gap: 8px;
-    }
-    .no-chat-icon { opacity: 0.15; animation: float 3s ease-in-out infinite; }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-12px); }
-    }
-    .no-chat-selected h2 { color: rgba(255,255,255,0.5); font-weight: 600; margin: 0; }
-    .no-chat-selected p { margin: 0; }
-
-    @media (max-width: 768px) {
-      .sidebar { width: 72px; overflow: hidden; }
-      .sidebar-header .user-details,
-      .search-box, .contact-info, .sidebar-nav span { display: none; }
-    }
-  `]
+  templateUrl: './chat.component.html',
+  styleUrl: './chat.component.css'
 })
-export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
+export class ChatComponent implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+  private chatService = inject(ChatService);
+  private userService = inject(UserService);
+  mediaService = inject(MediaService);  // Public so it can be used in templates
+  private webSocketService = inject(WebSocketService);
+  private router = inject(Router);
 
   currentUser: User | null = null;
-  users: User[] = [];
-  filteredUsers: User[] = [];
-  selectedUser: User | null = null;
+  conversations: ConversationSummary[] = [];
+  filteredConversations: ConversationSummary[] = [];
+  selectedUser: UserSummary | null = null;
   messages: Message[] = [];
-  messageText = '';
+  messageContent = '';
   searchQuery = '';
-  selectedFile: File | null = null;
+  isSearching = false;
+  searchResult: User | null = null;
+  searchNotFound = false;
+  isDarkTheme = true;
+  editingMessageId: string | null = null;
+  editingContent = '';
+  activeMenuMessageId = signal<string | null>(null);
+  removingMessageIds = signal(new Set<string>());
+  isLoading = signal(false);
+  justEditedId = signal<string | null>(null);
+  isEditing = computed(() => !!this.editingMessageId);
 
-  private wsSub?: Subscription;
-  private userSub?: Subscription;
-  private shouldScroll = false;
+  // Media and multi-select properties
+  mediaCache: Record<string, Media> = {};
+  isMultiSelectMode = false;
+  selectedRecipients = new Set<string>();
+  deleteConfirmMerID: string | null = null;
+  deletingMerID: string | null = null;
+  showToast = false;
+  toastMessage = '';
+  isUploading = false;
 
-  constructor(
-    private authService: AuthService,
-    private chatService: ChatService,
-    private mediaService: MediaService,
-    private userService: UserService,
-    private wsService: WebSocketService,
-    private router: Router
-  ) {}
+  private subscriptions: Subscription[] = [];
 
   ngOnInit(): void {
-    this.userSub = this.authService.currentUser$.subscribe(u => this.currentUser = u);
-    this.loadUsers();
-    this.wsService.connect();
-    this.wsSub = this.wsService.messages$.subscribe(msg => {
-      if (this.selectedUser &&
-          (msg.senderId === this.selectedUser.merID || msg.recipientId === this.selectedUser.merID)) {
-        this.messages.push(msg);
-        this.shouldScroll = true;
+    // Load theme preference from localStorage
+    const savedTheme = localStorage.getItem('orgchat_theme');
+    if (savedTheme === 'light') {
+      this.isDarkTheme = false;
+      document.documentElement.classList.add('light-theme');
+    } else {
+      this.isDarkTheme = true;
+      document.documentElement.classList.remove('light-theme');
+    }
+
+    this.currentUser = this.authService.currentUser;
+    if (!this.currentUser) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // Load inbox — populate sidebar with existing conversations
+    this.loadInbox();
+
+    this.webSocketService.connect();
+    this.subscriptions.push(
+      this.webSocketService.messages$.subscribe(msg => {
+        this.handleIncomingMessage(msg);
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.webSocketService.disconnect();
+  }
+
+  loadInbox(): void {
+    this.chatService.getInbox().subscribe({
+      next: (convs) => {
+        this.conversations = convs;
+        this.filteredConversations = [...convs];
+      },
+      error: (err) => {
+        console.error('Failed to load inbox:', err);
+        this.conversations = [];
+        this.filteredConversations = [];
       }
     });
   }
 
-  ngAfterViewChecked(): void {
-    if (this.shouldScroll) {
-      this.scrollToBottom();
-      this.shouldScroll = false;
+  selectConversation(summary: ConversationSummary): void {
+    this.selectedUser = {
+      merID: summary.partnerMerID,
+      displayName: summary.partnerDisplayName,
+      avatarUrl: summary.partnerAvatarUrl
+    };
+    this.messages = [];
+    this.messageContent = '';
+    this.isLoading.set(true);
+    this.loadConversation();
+
+    // Reset unread count and mark messages as read
+    const convIndex = this.conversations.findIndex(c => c.partnerMerID === summary.partnerMerID);
+    if (convIndex !== -1) {
+      this.conversations[convIndex].unreadCount = 0;
+      this.filteredConversations = [...this.conversations];
     }
   }
 
-  ngOnDestroy(): void {
-    this.wsSub?.unsubscribe();
-    this.userSub?.unsubscribe();
-    this.wsService.disconnect();
-  }
+  searchByMerID(): void {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) {
+      this.searchResult = null;
+      this.searchNotFound = false;
+      return;
+    }
 
-  loadUsers(): void {
-    this.userService.getAllUsers().subscribe({
-      next: (users) => {
-        this.users = users.filter(u => u.merID !== this.currentUser?.merID);
-        this.filteredUsers = [...this.users];
+    this.isSearching = true;
+    this.userService.getUserByMerID(query).subscribe({
+      next: (user: User) => {
+        this.searchResult = user;
+        this.searchNotFound = false;
+        this.isSearching = false;
+
+        // Check if user already in conversations
+        const existing = this.conversations.find(c => c.partnerMerID === user.merID);
+        if (!existing) {
+          // Add temporarily for selection
+          const newConv: ConversationSummary = {
+            partnerMerID: user.merID,
+            partnerDisplayName: user.displayName,
+            partnerAvatarUrl: user.avatarUrl,
+            lastMessage: '',
+            lastTimestamp: new Date().toISOString(),
+            unreadCount: 0
+          };
+          this.conversations.unshift(newConv);
+        }
+
+        // Auto-select the user
+        this.selectConversation(existing || {
+          partnerMerID: user.merID,
+          partnerDisplayName: user.displayName,
+          partnerAvatarUrl: user.avatarUrl,
+          lastMessage: '',
+          lastTimestamp: new Date().toISOString(),
+          unreadCount: 0
+        });
       },
-      error: () => { this.filteredUsers = []; }
+      error: (err) => {
+        this.searchResult = null;
+        this.searchNotFound = true;
+        this.isSearching = false;
+      }
     });
   }
 
-  filterUsers(): void {
-    const q = this.searchQuery.toLowerCase();
-    this.filteredUsers = this.users.filter(u =>
-      u.displayName?.toLowerCase().includes(q) || u.merID?.toLowerCase().includes(q));
+  filterConversations(): void {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) {
+      this.filteredConversations = [...this.conversations];
+    } else {
+      this.filteredConversations = this.conversations.filter(c =>
+        c.partnerDisplayName.toLowerCase().includes(query) ||
+        c.partnerMerID.toLowerCase().includes(query)
+      );
+    }
   }
 
-  selectUser(user: User): void {
+  handleIncomingMessage(msg: Message): void {
+    const isFromMe = msg.senderId === this.currentUser?.merID;
+    const otherUserMerID = isFromMe ? msg.recipientId : msg.senderId;
+
+    // Handle message actions
+    if (msg.action === 'EDIT') {
+      if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+        const messageIndex = this.messages.findIndex(m => m.id === msg.id);
+        if (messageIndex !== -1) {
+          this.messages[messageIndex].content = msg.content;
+        }
+      }
+    } else if (msg.action === 'DELETE') {
+      if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+        this.messages = this.messages.filter(m => m.id !== msg.id);
+      }
+    } else {
+      // New/regular message
+      // Push to screen if viewing this conversation
+      if (this.selectedUser && this.selectedUser.merID === otherUserMerID) {
+        this.messages.push(msg);
+        if (msg.mediaId && !this.mediaCache[msg.mediaId]) {
+          this.loadMediaForMessage(msg);
+        }
+      } else if (!isFromMe) {
+        // Increment unread count if not viewing conversation and not from me
+        const convIndex = this.conversations.findIndex(c => c.partnerMerID === otherUserMerID);
+        if (convIndex !== -1) {
+          this.conversations[convIndex].unreadCount++;
+        }
+      }
+
+      // Update or add conversation to inbox
+      const existingConv = this.conversations.find(c => c.partnerMerID === otherUserMerID);
+      if (existingConv) {
+        // Update existing conversation
+        existingConv.lastMessage = msg.content || (msg.mediaId ? '📎 Media' : '');
+        existingConv.lastMediaId = msg.mediaId;
+        existingConv.lastTimestamp = msg.timestamp;
+        // Move to top
+        this.conversations = [
+          existingConv,
+          ...this.conversations.filter(c => c.partnerMerID !== otherUserMerID)
+        ];
+      } else if (!isFromMe) {
+        // New sender not in inbox — add them
+        this.userService.getUserByMerID(otherUserMerID).subscribe({
+          next: (user) => {
+            const newConv: ConversationSummary = {
+              partnerMerID: user.merID,
+              partnerDisplayName: user.displayName,
+              partnerAvatarUrl: user.avatarUrl,
+              lastMessage: msg.content || (msg.mediaId ? '📎 Media' : ''),
+              lastMediaId: msg.mediaId,
+              lastTimestamp: msg.timestamp,
+              unreadCount: 1
+            };
+            this.conversations.unshift(newConv);
+            this.filteredConversations = [...this.conversations];
+          },
+          error: (err) => console.error('Failed to fetch conversation user:', err)
+        });
+      }
+      this.filteredConversations = [...this.conversations];
+    }
+  }
+
+  toggleMultiSelectMode(): void {
+    this.isMultiSelectMode = !this.isMultiSelectMode;
+    if (this.isMultiSelectMode) {
+      this.selectedRecipients.clear();
+    }
+  }
+
+  toggleRecipient(merID: string): void {
+    if (this.selectedRecipients.has(merID)) {
+      this.selectedRecipients.delete(merID);
+    } else {
+      this.selectedRecipients.add(merID);
+    }
+  }
+
+  isRecipientSelected(merID: string): boolean {
+    return this.selectedRecipients.has(merID);
+  }
+
+  selectUser(user: UserSummary): void {
+    if (this.isMultiSelectMode) {
+      // In multi-select mode: toggle recipient instead of switching chat
+      this.toggleRecipient(user.merID);
+      return;
+    }
+
+    // This shouldn't be called in normal mode anymore — use selectConversation instead
+    // But keeping for backward compatibility
     this.selectedUser = user;
     this.messages = [];
-    this.chatService.getConversation(user.merID).subscribe({
-      next: (page) => {
-        this.messages = page.content.reverse();
-        this.shouldScroll = true;
+    this.messageContent = '';
+    this.isLoading.set(true);
+    this.loadConversation();
+  }
+
+  loadConversation(): void {
+    if (!this.selectedUser || !this.currentUser) return;
+
+    this.chatService.getConversation(this.currentUser.merID, this.selectedUser.merID, 0, 50).subscribe({
+      next: (messages) => {
+        this.messages = messages;
+        // Load media cache for all mediaIds in conversation
+        this.loadMediaForMessages(messages);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load conversation:', err);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  loadMediaForMessages(messages: Message[]): void {
+    const mediaIds = messages
+      .filter(m => m.mediaId && !this.mediaCache[m.mediaId])
+      .map(m => m.mediaId as string)
+      .filter((id, idx, arr) => arr.indexOf(id) === idx); // Unique IDs
+
+    mediaIds.forEach(id => this.loadMediaForId(id));
+  }
+
+  loadMediaForMessage(message: Message): void {
+    if (message.mediaId && !this.mediaCache[message.mediaId]) {
+      this.loadMediaForId(message.mediaId);
+    }
+  }
+
+  private loadMediaForId(mediaId: string): void {
+    this.mediaService.getMediaById(mediaId).subscribe({
+      next: (media) => {
+        this.mediaCache[mediaId] = media;
+      },
+      error: (err) => {
+        console.error(`Failed to load media metadata for ${mediaId}:`, err);
       }
     });
   }
 
   sendMessage(): void {
-    if (!this.selectedUser || (!this.messageText.trim() && !this.selectedFile)) return;
+    if (this.isMultiSelectMode && this.selectedRecipients.size > 0) {
+      // Multi-recipient send
+      if (!this.messageContent.trim()) return;
 
-    const send = (mediaId?: string) => {
-      this.chatService.sendMessage(
-        this.selectedUser!.merID, this.messageText.trim(), mediaId
+      this.chatService.sendToMultiple(
+        Array.from(this.selectedRecipients),
+        this.messageContent
       ).subscribe({
-        next: (msg) => {
-          this.messages.push(msg);
-          this.messageText = '';
-          this.selectedFile = null;
-          this.shouldScroll = true;
-        }
+        next: () => {
+          this.showToastMessage(`✓ Sent to ${this.selectedRecipients.size} contacts`);
+          this.messageContent = '';
+          this.selectedRecipients.clear();
+          this.isMultiSelectMode = false;
+        },
+        error: (err) => console.error('Failed to send multi-message:', err)
       });
-    };
-
-    if (this.selectedFile) {
-      this.mediaService.upload(this.selectedFile).subscribe({
-        next: (media) => send(media.id)
-      });
+    } else if (!this.messageContent.trim() || !this.selectedUser) {
+      return;
     } else {
-      send();
+      // Single recipient send
+      this.chatService.sendMessage(this.selectedUser.merID, this.messageContent).subscribe({
+        next: (message) => {
+          this.messages.push(message);
+          this.messageContent = '';
+        },
+        error: (err) => console.error('Failed to send message:', err)
+      });
     }
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.selectedFile = input.files[0];
-    }
+  getMediaCategory(mediaId: string): 'image' | 'video' | 'document' | 'file' | 'loading' {
+    if (!mediaId) return 'loading';
+    if (!this.mediaCache[mediaId]) return 'loading';
+    return this.mediaService.getFileCategory(this.mediaCache[mediaId].fileType);
   }
 
-  removeFile(): void { this.selectedFile = null; }
+  getMediaThumbUrl(mediaId: string): string {
+    return this.mediaService.getDownloadUrl(mediaId);
+  }
 
   openMedia(mediaId: string): void {
     this.router.navigate(['/media', mediaId]);
   }
 
-  formatTime(timestamp: string): string {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  getDocumentIconType(mediaId: string): 'pdf' | 'word' | 'excel' | 'ppt' | 'text' | 'document' {
+    if (!this.mediaCache[mediaId]) return 'document';
+    return this.mediaService.getDocumentIconType(this.mediaCache[mediaId].fileType);
   }
 
-  logout(): void { this.authService.logout(); }
+  getMultiSelectNames(): string {
+    return Array.from(this.selectedRecipients)
+      .slice(0, 2)
+      .map(id => this.conversations.find(c => c.partnerMerID === id)?.partnerDisplayName || id)
+      .join(', ') + (this.selectedRecipients.size > 2 ? `, +${this.selectedRecipients.size - 2} more` : '');
+  }
 
-  private scrollToBottom(): void {
-    try {
-      this.messagesContainer.nativeElement.scrollTop =
-        this.messagesContainer.nativeElement.scrollHeight;
-    } catch (err) {}
+  createConversationFromSearchResult(): ConversationSummary {
+    if (!this.searchResult) {
+      return {
+        partnerMerID: '',
+        partnerDisplayName: '',
+        lastMessage: '',
+        lastTimestamp: new Date().toISOString(),
+        unreadCount: 0
+      };
+    }
+    return {
+      partnerMerID: this.searchResult.merID,
+      partnerDisplayName: this.searchResult.displayName,
+      partnerAvatarUrl: this.searchResult.avatarUrl,
+      lastMessage: '',
+      lastTimestamp: new Date().toISOString(),
+      unreadCount: 0
+    };
+  }
+
+  isSearchResultNew(): boolean {
+    if (!this.searchResult) return false;
+    return !this.conversations.find(c => c.partnerMerID === this.searchResult?.merID);
+  }
+
+  showToastMessage(message: string): void {
+    this.toastMessage = message;
+    this.showToast = true;
+    setTimeout(() => {
+      this.showToast = false;
+    }, 2500);
+  }
+
+  logout(): void {
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+      error: (err) => console.error('Logout failed:', err)
+    });
+  }
+
+  toggleTheme(): void {
+    this.isDarkTheme = !this.isDarkTheme;
+    if (this.isDarkTheme) {
+      document.documentElement.classList.remove('light-theme');
+      localStorage.setItem('orgchat_theme', 'dark');
+    } else {
+      document.documentElement.classList.add('light-theme');
+      localStorage.setItem('orgchat_theme', 'light');
+    }
+  }
+
+  startEdit(msg: Message): void {
+    this.editingMessageId = msg.id;
+    this.messageContent = msg.content;
+    this.activeMenuMessageId.set(null);
+  }
+
+  editMessage(msg: Message): void {
+    this.startEdit(msg);
+  }
+
+  toggleMenu(id: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.activeMenuMessageId.set(this.activeMenuMessageId() === id ? null : id);
+  }
+
+  @HostListener('document:click')
+  closeMenu(): void {
+    this.activeMenuMessageId.set(null);
+  }
+
+  submitEdit(): void {
+    if (!this.editingMessageId || !this.messageContent.trim()) {
+      return;
+    }
+
+    this.chatService.editMessage(this.editingMessageId, this.messageContent).subscribe({
+      next: (updatedMessage) => {
+        const messageIndex = this.messages.findIndex(m => m.id === this.editingMessageId);
+        if (messageIndex !== -1) {
+          this.messages[messageIndex].content = updatedMessage.content;
+          this.justEditedId.set(updatedMessage.id);
+          setTimeout(() => this.justEditedId.set(null), 600);
+        }
+        this.cancelEdit();
+      },
+      error: (err) => {
+        console.error('Failed to edit message:', err);
+        alert('Failed to edit message. You can only edit your own messages.');
+      }
+    });
+  }
+
+  cancelEdit(): void {
+    this.editingMessageId = null;
+    this.editingContent = '';
+    this.messageContent = '';
+  }
+
+  deleteMessage(id: string): void {
+    if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+      this.activeMenuMessageId.set(null);
+      this.removingMessageIds.update((ids) => {
+        const next = new Set(ids);
+        next.add(id);
+        return next;
+      });
+
+      // Wait for animation to complete before calling API
+      setTimeout(() => {
+        this.chatService.deleteMessage(id).subscribe({
+          next: () => {
+            this.removingMessageIds.update((ids) => {
+              const next = new Set(ids);
+              next.delete(id);
+              return next;
+            });
+            this.messages = this.messages.filter(m => m.id !== id);
+          },
+          error: (err) => {
+            console.error('Failed to delete message:', err);
+            this.removingMessageIds.update((ids) => {
+              const next = new Set(ids);
+              next.delete(id);
+              return next;
+            });
+            alert('Failed to delete message. You can only delete your own messages.');
+          }
+        });
+      }, 250);
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file || !this.currentUser) {
+      target.value = ''; // Reset input
+      return;
+    }
+
+    // Validate file size (500MB max)
+    const MAX_SIZE = 500 * 1024 * 1024; // 500MB
+    if (file.size > MAX_SIZE) {
+      this.showToastMessage(`❌ File too large (max 500MB)`);
+      target.value = '';
+      return;
+    }
+
+    this.isUploading = true;
+
+    this.mediaService.upload(file, this.currentUser.merID).subscribe({
+      next: (media) => {
+        this.isUploading = false;
+        target.value = ''; // Reset input
+
+        if (this.isMultiSelectMode && this.selectedRecipients.size > 0) {
+          // Send to multiple recipients
+          this.chatService.sendToMultiple(
+            Array.from(this.selectedRecipients),
+            '',
+            media.id
+          ).subscribe({
+            next: () => {
+              this.showToastMessage(`✓ Shared to ${this.selectedRecipients.size} contacts`);
+              this.selectedRecipients.clear();
+              this.isMultiSelectMode = false;
+            },
+            error: (err) => {
+              console.error('Failed to send media to multiple recipients:', err);
+              this.showToastMessage('❌ Failed to share media');
+            }
+          });
+        } else if (this.selectedUser) {
+          // Send to single recipient
+          this.chatService.sendMessage(this.selectedUser.merID, '', media.id).subscribe({
+            next: (message) => {
+              this.messages.push(message);
+              // Load media metadata
+              if (media.id) {
+                this.mediaCache[media.id] = media;
+              }
+              this.showToastMessage('✓ Media sent');
+            },
+            error: (err) => {
+              console.error('Failed to send media:', err);
+              this.showToastMessage('❌ Failed to send media');
+            }
+          });
+        }
+      },
+      error: (err) => {
+        this.isUploading = false;
+        target.value = ''; // Reset input
+        console.error('Failed to upload file:', err);
+        this.showToastMessage('❌ Upload failed');
+      }
+    });
+  }
+
+  onConversationDoubleClick(summary: ConversationSummary, event: Event): void {
+    event.stopPropagation();
+    this.deleteConfirmMerID = summary.partnerMerID;
+  }
+
+  confirmDelete(): void {
+    if (!this.deleteConfirmMerID || !this.selectedUser) {
+      return;
+    }
+
+    const merIDToDelete = this.deleteConfirmMerID;
+    this.deletingMerID = merIDToDelete;
+
+    this.chatService.deleteConversation(merIDToDelete).subscribe({
+      next: () => {
+        // Remove conversation from list
+        this.conversations = this.conversations.filter(
+          c => c.partnerMerID !== merIDToDelete
+        );
+        this.filteredConversations = this.filteredConversations.filter(
+          c => c.partnerMerID !== merIDToDelete
+        );
+
+        // If currently viewing this conversation, reset to empty state
+        if (this.selectedUser?.merID === merIDToDelete) {
+          this.selectedUser = null as any;
+          this.messages = [];
+        }
+
+        this.deleteConfirmMerID = null;
+        this.deletingMerID = null;
+        this.showToastMessage('✓ Conversation deleted');
+      },
+      error: (err) => {
+        console.error('Failed to delete conversation:', err);
+        this.deletingMerID = null;
+        this.deleteConfirmMerID = null;
+        this.showToastMessage('❌ Failed to delete conversation');
+      }
+    });
+  }
+
+  cancelDelete(): void {
+    this.deleteConfirmMerID = null;
   }
 }
+

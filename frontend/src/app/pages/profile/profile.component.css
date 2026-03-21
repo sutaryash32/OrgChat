@@ -1,0 +1,127 @@
+.profile-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.page-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.page-header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.back-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background-color: rgba(99, 102, 241, 0.1);
+  border-color: var(--accent-primary);
+}
+
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.profile-header {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.avatar-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: white;
+  font-weight: 700;
+  margin: 0 auto 16px;
+}
+
+.profile-header h1 {
+  font-size: 1.8rem;
+  margin: 0 0 8px;
+}
+
+.merid {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 4px 0;
+}
+
+.email {
+  color: var(--accent-primary);
+  font-size: 0.9rem;
+  margin: 4px 0;
+}
+
+.media-section {
+  background-color: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.media-section h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.media-item {
+  background-color: var(--bg-primary);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.media-item p {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-item span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
