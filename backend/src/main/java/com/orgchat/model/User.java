@@ -18,7 +18,6 @@ import java.time.Instant;
 public class User {
 
     @Id
-    @Indexed(unique = true)
     private String merID;
 
     @Indexed(unique = true)
