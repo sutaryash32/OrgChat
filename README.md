@@ -1,4 +1,4 @@
-# � OrgChat — The Telegram of Your Organization
+# ![OrgChat](frontend/icon/OrgChat_logo.png) OrgChat — The Telegram of Your Organization
 
 **OrgChat is the Telegram of your organization** — lightweight, secure, and identity-bound to merID, enabling trusted P2P communication without personal contact exchange. Built for **media-first sharing** with chat baked in for collaboration, entirely exclusive to your organization.
 
