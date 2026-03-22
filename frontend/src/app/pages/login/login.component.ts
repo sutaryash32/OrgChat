@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { UserService } from '../../core/user.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -64,7 +65,7 @@ export class LoginComponent implements OnInit {
 
   loginWithGoogle(): void {
     this.loading = true;
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    window.location.href = `${window.location.origin}/oauth2/authorization/google`;
   }
 
   private handleOAuthCallback(code: string): void {

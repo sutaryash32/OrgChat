@@ -25,6 +25,7 @@ OrgChat — The Telegram of Your Organization
 - [API Reference](#-api-reference)
 - [Security](#-security)
 - [Database](#-database)
+- [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -43,39 +44,38 @@ OrgChat is purpose-built for secure file sharing within your organization — li
 - 🏢 **Organization-Exclusive** — Secure, professional space where everyone's verified
 - 💬 **Chat Built-In** — Supporting communication, not the primary focus
 
-While giants dominate chat-first collaboration, **OrgChat owns the media-first positioning** — the fastest, most secure way to share files within your organization.
-
 ---
 
 ## ✨ Features
 
 ### 📤 Media-First File Sharing (Core)
-- ✅ **Secure Media Upload** — Support for images, videos, documents (up to 500MB)
-- ✅ **Effortless Exchange** — Drag-and-drop file sharing in conversations
-- ✅ **Media Preview** — In-app media viewing without leaving the app
-- ✅ **File Management** — Download, save, and delete capabilities
-- ✅ **Any Size, Any Type** — No artificial file type restrictions
+- ✅ Secure Media Upload — Support for images, videos, documents (up to 500MB)
+- ✅ Effortless Exchange — File sharing in conversations
+- ✅ Media Preview — In-app media viewing without leaving the app
+- ✅ File Management — Download, save, and delete capabilities
+- ✅ Two distinct layouts — text bubbles vs media cards (no overlap)
 
-### 💬 Real-time Chat (Supporting Feature)
-- ✅ **Real-time Messaging** — Instant messaging via WebSocket (STOMP)
-- ✅ **Multi-user Support** — Contact management with mate requests
-- ✅ **Message History** — Persistent conversation records with context
-- ✅ **Contextual Communication** — Chat tied directly to file exchanges
+### 💬 Real-time Chat
+- ✅ Real-time Messaging — Instant messaging via WebSocket (STOMP/SockJS)
+- ✅ Message History — Persistent conversation records
+- ✅ Edit & Delete Messages — With real-time broadcast to recipient
+- ✅ Unread badge counts per conversation
+- ✅ Inbox with last message preview
 
-### 🔐 Security & Organization-Exclusive Access
-- ✅ **Google OAuth2 SSO** — Single Sign-On integration with your organization
-- ✅ **merID Identity Binding** — Verified, unique organizational identifier for each user
-- ✅ **JWT Tokens** — Stateless authentication with refresh tokens
-- ✅ **WebSocket Security** — STOMP endpoint protection
-- ✅ **End-to-End Verification** — Know exactly who you're communicating with
-- ✅ **CORS Protection** — Configurable origin restrictions for organization only
+### 🔐 Security & Identity
+- ✅ Google OAuth2 SSO — Single Sign-On integration
+- ✅ merID Identity Binding — Verified, unique organizational identifier
+- ✅ JWT Tokens — Stateless authentication with refresh tokens
+- ✅ WebSocket Security — STOMP endpoint protection
+- ✅ CORS Protection — Configurable origin restrictions
 
 ### 🎨 User Experience
-- ✅ **Human-readable User IDs** — merID system (vs ObjectIds)
-- ✅ **User Search** — Find contacts instantly by merID
-- ✅ **Dark/Light Theme** — Adaptive UI based on preference
-- ✅ **Responsive Design** — Seamless experience across devices
-- ✅ **Database Auto-migration** — Automatic data sanitization on startup
+- ✅ Dark / Light Theme — Toggle with localStorage persistence
+- ✅ Mobile Responsive — Optimized for 390×844 (Samsung S20 FE, iPhone 14)
+- ✅ Slide-in sidebar — Hamburger menu on mobile
+- ✅ Long press to delete conversation on mobile
+- ✅ Search by merID — Start chat only on button click
+- ✅ Multi-select broadcast — Send to multiple contacts at once
 
 ---
 
@@ -84,26 +84,31 @@ While giants dominate chat-first collaboration, **OrgChat owns the media-first p
 ### Backend
 | Component | Technology |
 |-----------|-----------|
-| **Framework** | Spring Boot 3.2.3 |
-| **Runtime** | Java 17+ |
-| **Database** | MongoDB 5.0+ |
-| **Real-time** | WebSocket (STOMP) + SockJS |
-| **Auth** | OAuth2 (Google) + JWT |
-| **Build** | Maven |
+| Framework | Spring Boot 3.2.3 |
+| Runtime | Java 21 |
+| Database | MongoDB 7.0 |
+| Real-time | WebSocket (STOMP) + SockJS |
+| Auth | OAuth2 (Google) + JWT |
+| Build | Maven |
 
 ### Frontend
 | Component | Technology |
 |-----------|-----------|
-| **Framework** | Angular 19.2 |
-| **Language** | TypeScript 5.7 |
-| **Styling** | CSS3 (Dark/Light Theme) |
-| **WebSocket** | STOMP.js + SockJS |
-| **HTTP** | RxJS + Interceptors |
+| Framework | Angular 19.2 |
+| Language | TypeScript 5.7 |
+| Styling | CSS3 (Dark/Light Theme, Mobile Responsive) |
+| WebSocket | STOMP.js + SockJS |
+| HTTP | RxJS + Interceptors |
 
 ### Infrastructure
-- **Port (Backend):** 8080
-- **Port (Frontend):** 4200
-- **Database:** MongoDB (Local: `localhost:27017`)
+| Component | Details |
+|-----------|---------|
+| Container | Docker + Docker Compose |
+| Web Server | Nginx (reverse proxy + static serving) |
+| Public Tunnel | ngrok (for external access) |
+| Frontend Port | 4200 |
+| Backend Port | 8080 |
+| Database Port | 27017 |
 
 ---
 
@@ -113,187 +118,83 @@ While giants dominate chat-first collaboration, **OrgChat owns the media-first p
 ┌─────────────────────────────────────────────────────────────────┐
 │                     ORGCHAT SYSTEM ARCHITECTURE                 │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
+│                                                                  │
 │  ┌──────────────────────┐         ┌──────────────────────┐      │
 │  │    FRONTEND (SPA)    │         │   BACKEND (REST)     │      │
 │  │  Angular 19.2        │◄───────►│  Spring Boot 3.2.3   │      │
-│  │  - Chat Component    │         │  - Controllers       │      │
-│  │  - Auth Service      │  HTTP   │  - Services          │      │
-│  │  - WebSocket Service │  JWT    │  - Repositories      │      │
+│  │  - Chat Component    │  HTTP   │  - Controllers       │      │
+│  │  - Auth Service      │  JWT    │  - Services          │      │
+│  │  - WebSocket Service │         │  - Repositories      │      │
 │  └──────────────────────┘         └──────────────────────┘      │
-│         :4200                              :8080                │
-│           │                                  │                  │
-│           │                    ┌─────────────┼─────────────┐   │
-│           │                    │             │             │   │
-│           │                  ┌─────────┐ ┌──────────┐ ┌────────┐
-│           │                  │ Mongo DB│ │ OAuth2   │ │WebSocket│
-│           └──────────────────│(orgchat)│ │(Google)  │ │(STOMP)  │
-│                              └─────────┘ └──────────┘ └────────┘
-│                                                                   │
+│         :4200                              :8080                 │
+│           │                    ┌───────────┼─────────────┐      │
+│           │                    │           │             │      │
+│           │                 ┌──────┐  ┌────────┐  ┌──────────┐  │
+│           │                 │Mongo │  │OAuth2  │  │WebSocket │  │
+│           └─────────────────│ :27017  │Google  │  │STOMP     │  │
+│                             └──────┘  └────────┘  └──────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
-
-**Data Flow Layers:**
-1. **Presentation Layer** — Angular UI components
-2. **Service Layer** — Business logic (UserService, MessageService, etc.)
-3. **Repository Layer** — MongoDB data access
-4. **Messaging Layer** — WebSocket for real-time updates
 
 ---
 
 ## 🔄 Application Flow
 
-### 1️⃣ **Authentication Flow**
+### Authentication Flow
 
 ```
-┌─────────────┐
-│   User      │
-│  Visits UI  │
-└──────┬──────┘
-       │
-       ▼
-┌──────────────────────┐
-│ Click "Sign in with  │
-│ Google" Button       │
-└──────┬───────────────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│ OAuth2 Redirect to Google            │
-│ /oauth2/authorization/google         │
-└──────┬───────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│ Google Login                         │
-│ (User grants permissions)            │
-└──────┬───────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│ Backend: AuthController.handleLogin()│
-│ - Verify OAuth2 token               │
-│ - Create/Update User in MongoDB     │
-│ - Generate JWT token               │
-└──────┬───────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────────────┐
-│ Redirect to Dashboard               │
-│ JWT stored in localStorage          │
-│ Refresh token in HTTP-Only Cookie   │
-└──────────────────────────────────────┘
+User visits → Click "Sign in with Google"
+    │
+    ▼
+/oauth2/authorization/google (via nginx proxy)
+    │
+    ▼
+Google login → callback to /login/oauth2/code/google
+    │
+    ▼
+Backend: create/update user, issue JWT
+    │
+    ▼
+Redirect to /login?token=xxx&merID=xxx
+    │
+    ▼
+Angular stores token → navigate to /chat
 ```
 
-### 2️⃣ **Message Flow (Real-time)**
+### Message Flow (Real-time)
 
 ```
-User A                          Backend                    User B
-  │                               │                          │
-  │──1. Type Message──────────►   │                          │
-  │                               │                          │
-  │◄──2. Send via WebSocket────┐  │                          │
-  │    MESSAGE                 │  │                          │
-  │    /app/sendMessage        │  │                          │
-  │                            │  │                          │
-  │                            ▼  │                          │
-  │                        ┌──────────────┐                  │
-  │                        │ Save to      │                  │
-  │                        │ MongoDB      │                  │
-  │                        │ (messages)   │                  │
-  │                        └──────┬───────┘                  │
-  │                               │                          │
-  │                               ├──3. Broadcast────────────►│
-  │                               │  /topic/room/{id}/msg    │
-  │  ┌──4. Receive──────────────┐ │                          │
-  │  │ MESSAGE via STOMP        │ │                    ┌─────┴─────┐
-  │  │                          │ │                    │ Display  │
-  │  │                          ▼ ▼                    │ in Chat  │
-  │  │                      /user/queue/msg           │          │
-  │  │                                                └──────────┘
-  │  │ (Message appears instantly)
-  │  └──────────────────────────────────────────────┘
+User A types message
+    │
+    ▼
+POST /api/messages/send → saved to MongoDB
+    │
+    ▼
+SimpMessagingTemplate.convertAndSendToUser()
+    │
+    ▼
+WebSocket push → /user/queue/messages
+    │
+    ▼
+User B receives instantly — no refresh needed ✓
 ```
 
-### 3️⃣ **Media Upload Flow**
+### Media Upload Flow
 
 ```
-┌─────────────┐
-│ User Selects│
-│ File (500MB)│
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────┐
-│ Frontend Upload Request │
-│ multipart/form-data     │
-│ /api/media/upload       │
-└──────┬──────────────────┘
-       │
-       ▼
-┌──────────────────────────┐
-│ Backend: MediaService    │
-│ - Validate file         │
-│ - Store file            │
-│ - Save metadata in DB   │
-│ - Generate unique ID    │
-└──────┬───────────────────┘
-       │
-       ▼
-┌────────────────────────┐
-│ Return Media ID        │
-│ + Download URL         │
-└──────┬─────────────────┘
-       │
-       ▼
-┌────────────────────────┐
-│ Attach to Message      │
-│ Send via WebSocket     │
-└────────────────────────┘
-```
-
-### 4️⃣ **User Search & Contact Addition**
-
-```
-┌────────────┐
-│ User A     │
-│ Types MerID│
-│ "john.doe" │
-└──────┬─────┘
-       │
-       ▼
-┌────────────────────────────┐
-│ WebSocket Query            │
-│ /app/searchByMerID         │
-└──────┬─────────────────────┘
-       │
-       ▼
-┌────────────────────────────┐
-│ Backend: UserController    │
-│ - Find user in MongoDB    │
-│ - Return user profile    │
-└──────┬─────────────────────┘
-       │
-       ▼
-┌────────────────────────────┐
-│ Display Search Result      │
-│ - Avatar, Name, ID       │
-│ - "Add Contact" Button   │
-└──────┬─────────────────────┘
-       │
-       ▼
-┌─────────────────────────────┐
-│ Send Mate Request           │
-│ POST /api/mate-request      │
-│ {fromMerID, toMerID}        │
-└──────┬──────────────────────┘
-       │
-       ▼
-┌─────────────────────────────┐
-│ Create MateRequest in DB    │
-│ Status: PENDING             │
-│ Notify User B via WebSocket │
-└─────────────────────────────┘
+User selects file (up to 500MB)
+    │
+    ▼
+POST /api/media/upload → stored in MongoDB GridFS
+    │
+    ▼
+Returns media ID
+    │
+    ▼
+POST /api/messages/send with mediaId
+    │
+    ▼
+Recipient sees media card in real time ✓
 ```
 
 ---
@@ -302,87 +203,34 @@ User A                          Backend                    User B
 
 ```
 OrgChat/
+├── backend/
+│   └── src/main/java/com/orgchat/
+│       ├── config/          # Security, WebSocket, CORS
+│       ├── controller/      # REST endpoints
+│       ├── service/         # Business logic
+│       ├── repository/      # MongoDB repositories
+│       ├── model/           # MongoDB documents
+│       ├── dto/             # Data transfer objects
+│       └── security/        # JWT, OAuth2
 │
-├── backend/                          # Spring Boot Backend
-│   ├── src/main/
-│   │   ├── java/com/orgchat/
-│   │   │   ├── config/              # Configuration classes
-│   │   │   │   ├── SecurityConfig.java
-│   │   │   │   ├── WebSocketConfig.java
-│   │   │   │   ├── DatabaseMigrationRunner.java
-│   │   │   │   └── StompAuthChannelInterceptor.java
-│   │   │   │
-│   │   │   ├── controller/          # REST API Endpoints
-│   │   │   │   ├── AuthController.java
-│   │   │   │   ├── UserController.java
-│   │   │   │   ├── ChatController.java (WebSocket)
-│   │   │   │   ├── MessageController.java
-│   │   │   │   ├── MateController.java
-│   │   │   │   └── MediaController.java
-│   │   │   │
-│   │   │   ├── service/             # Business Logic
-│   │   │   │   ├── AuthService.java
-│   │   │   │   ├── UserService.java
-│   │   │   │   ├── MessageService.java
-│   │   │   │   ├── ChatService.java
-│   │   │   │   ├── MateService.java
-│   │   │   │   └── MediaService.java
-│   │   │   │
-│   │   │   ├── repository/          # MongoDB Repositories
-│   │   │   │   ├── UserRepository.java
-│   │   │   │   ├── MessageRepository.java
-│   │   │   │   ├── MateRequestRepository.java
-│   │   │   │   └── MediaRepository.java
-│   │   │   │
-│   │   │   ├── model/               # MongoDB Documents
-│   │   │   │   ├── User.java
-│   │   │   │   ├── Message.java
-│   │   │   │   ├── Media.java
-│   │   │   │   └── MateRequest.java
-│   │   │   │
-│   │   │   ├── dto/                 # Data Transfer Objects
-│   │   │   ├── exception/           # Exception handling
-│   │   │   ├── security/            # JWT & Security utilities
-│   │   │   └── OrgChatApplication.java
-│   │   │
-│   │   └── resources/
-│   │       └── application.yml      # Configuration
-│   │
-│   └── pom.xml                      # Maven dependencies
+├── frontend/
+│   └── src/app/
+│       ├── core/            # Services, guards, interceptors
+│       │   ├── auth.service.ts
+│       │   ├── chat.service.ts
+│       │   ├── websocket.service.ts
+│       │   ├── media.service.ts
+│       │   └── models.ts
+│       └── pages/
+│           ├── chat/        # Main chat UI (mobile responsive)
+│           ├── login/       # Google SSO login
+│           ├── profile/     # User profile + media
+│           ├── settings/    # Account settings
+│           └── media-preview/ # Full media viewer
 │
-└── frontend/                         # Angular Application
-    ├── src/
-    │   ├── app/
-    │   │   ├── core/                # Services & Guards
-    │   │   │   ├── auth.service.ts
-    │   │   │   ├── chat.service.ts
-    │   │   │   ├── websocket.service.ts
-    │   │   │   ├── user.service.ts
-    │   │   │   ├── mate.service.ts
-    │   │   │   ├── media.service.ts
-    │   │   │   ├── auth.guard.ts
-    │   │   │   ├── jwt.interceptor.ts
-    │   │   │   └── models.ts
-    │   │   │
-    │   │   ├── pages/               # Feature Components
-    │   │   │   ├── login/
-    │   │   │   ├── chat/
-    │   │   │   ├── profile/
-    │   │   │   ├── settings/
-    │   │   │   └── media-preview/
-    │   │   │
-    │   │   ├── app.component.ts     # Root component
-    │   │   ├── app.routes.ts        # Route configuration
-    │   │   ├── app.config.ts        # App providers
-    │   │   └── app.component.html
-    │   │
-    │   ├── index.html               # Entry point
-    │   ├── main.ts                  # Bootstrap
-    │   └── styles.css               # Global styles
-    │
-    ├── angular.json                 # Angular CLI config
-    ├── package.json                 # NPM dependencies
-    └── tsconfig.json                # TypeScript config
+├── docker-compose.yml       # All services
+├── nginx.conf               # Reverse proxy config
+└── README.md
 ```
 
 ---
@@ -390,58 +238,160 @@ OrgChat/
 ## 🚀 Getting Started
 
 ### Prerequisites
+- Java 21+
+- Node.js 18+
+- MongoDB 7.0+
+- Docker + Docker Compose
 
-- **Java 17+** — Backend runtime
-- **Node.js 18+** — Frontend tooling
-- **npm/yarn** — Package manager
-- **MongoDB 5.0+** — Database
-- **Git** — Version control
+### Local Development
 
-### Installation
-
-#### 1. Clone Repository
 ```bash
+# 1. Clone
 git clone https://github.com/yourusername/OrgChat.git
 cd OrgChat
-```
 
-#### 2. Backend Setup
-
-```bash
+# 2. Backend
 cd backend
-
-# Build project
-mvn clean install
-
-# Start MongoDB (if not running)
-mongod
-
-# Run Spring Boot
 mvn spring-boot:run
-# or
-java -jar target/orgchat-backend-0.0.1-SNAPSHOT.jar
+
+# 3. Frontend
+cd frontend
+npm install
+ng serve
+
+# Open http://localhost:4200
 ```
 
-Backend runs at: **http://localhost:8080**
+---
 
-#### 3. Frontend Setup
+## 🐳 Docker Deployment
 
 ```bash
-cd frontend
+# Start all services
+docker-compose up -d
 
-# Install dependencies
-npm install
+# Check status
+docker-compose ps
 
-# Start development server
-npm start
+# View logs
+docker-compose logs -f backend
+
+# Stop
+docker-compose down
+
+# Full reset (wipes data)
+docker-compose down -v
 ```
 
-Frontend runs at: **http://localhost:4200**
+All three services should show **healthy**:
 
-#### 4. Access Application
-- Open: **http://localhost:4200**
-- Click "Sign in with Google"
-- Start chatting! 💬
+```
+orgchat-mongodb    Up (healthy)   :27017
+orgchat-backend    Up (healthy)   :8080
+orgchat-frontend   Up (healthy)   :4200
+```
+
+### Known Fixes Applied
+
+| Issue | Fix |
+|-------|-----|
+| MongoDB error 197 on startup | Removed `@Indexed(unique=true)` from `@Id` field in `User.java` — MongoDB 7.0 rejects `unique` on `_id` |
+| nginx.conf syntax error | Removed duplicate `location` blocks that were outside the `server {}` block |
+| WebSocket not delivering messages | Changed `wsUrl` from `ws://localhost:8080` to `window.location.origin/ws` — SockJS needs `http://` not `ws://` |
+| Backend crash on fresh volume | Added `docker-compose down -v` to wipe bad index from MongoDB volume |
+
+---
+
+## 🌐 ngrok Public Access Guide
+
+ngrok creates a public HTTPS tunnel so anyone on any device or network can access OrgChat — perfect for live demos.
+
+### Network Flow
+
+```
+                     ┌─────────────────────────────────────────────┐
+                     │           YOUR MACHINE (localhost)           │
+                     │                                              │
+📱 Mobile            │  ┌────────────┐                             │
+Any network ─HTTPS──►│─►│   nginx    │──/──────────► Angular        │
+                     │  │ :4200→:80  │                static files  │
+🖥️  PC browser       │  │            │──/api/───────► Spring Boot   │
+localhost:4200 ─────►│  │            │                   :8080      │
+                     │  │            │──/ws/────────► WebSocket      │
+                     │  │            │──/oauth2/────► OAuth2 handler │
+                     │  └────────────┘                    │         │
+                     │  ┌────────────┐                    │         │
+                     │  │  MongoDB   │◄── Spring Boot      │         │
+                     │  │   :27017   │                    │         │
+                     │  └────────────┘                    │         │
+                     └────────────────────────────────────│─────────┘
+                                                          │
+                                          ┌───────────────▼──────────┐
+┌──────────────────┐                      │     Google OAuth2         │
+│   ngrok cloud    │◄─────────────────────│  accounts.google.com      │
+│ 7a80-xxx.ngrok   │   callback with token│  redirect + login         │
+└────────┬─────────┘                      └──────────────────────────┘
+         │ tunnels to localhost:4200
+         ▼
+    nginx :4200
+```
+
+### URL Journey (Mobile Login)
+
+```
+1. Mobile opens   https://7a80-xxx.ngrok-free.app
+2. ngrok ────────► nginx :4200
+3. nginx ────────► Angular login page
+4. Sign in ──────► /oauth2/authorization/google (nginx proxy)
+5. Spring Boot ──► redirects to accounts.google.com
+6. Google login ─► callbacks to https://7a80-xxx.ngrok-free.app/login/oauth2/code/google
+7. Spring Boot ──► issues JWT, redirects to ngrok/login?token=xxx
+8. Angular ──────► stores token, navigates to /chat
+9. WebSocket ────► connects to ngrok/ws (STOMP over SockJS)
+10. Chat works ──► real-time messages ✓
+```
+
+### Setup Steps
+
+**1. Start Docker**
+```bash
+docker-compose up -d
+```
+
+**2. Start ngrok**
+```bash
+ngrok http 4200
+```
+
+**3. Update docker-compose.yml** (3 lines — replace old URL):
+```yaml
+APP_CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:4200,https://YOUR-URL.ngrok-free.app
+APP_FRONTEND_REDIRECT_URL: https://YOUR-URL.ngrok-free.app/login
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: https://YOUR-URL.ngrok-free.app/login/oauth2/code/google
+```
+
+**4. Google Cloud Console**
+- APIs & Services → Credentials → your OAuth Client
+- Authorized JavaScript origins: `https://YOUR-URL.ngrok-free.app`
+- Authorized redirect URIs: `https://YOUR-URL.ngrok-free.app/login/oauth2/code/google`
+- Save and wait 2 minutes
+
+**5. Restart backend**
+```bash
+docker-compose down --remove-orphans
+docker-compose up -d --force-recreate
+```
+
+### ngrok Troubleshooting
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `redirect_uri_mismatch` | Google Console not updated | Add new ngrok URL to Console |
+| `502 Bad Gateway on /oauth2/` | nginx missing proxy rule | Apply nginx.conf fix |
+| `ERR_EMPTY_RESPONSE` | `.env` overriding docker-compose | Update `.env` GOOGLE_REDIRECT_URI |
+| URL changes on restart | Free tier generates new URL | Never restart ngrok during demo |
+
+> **Keep ngrok running the entire session** — free tier URL changes on every restart.
 
 ---
 
@@ -546,297 +496,191 @@ For comprehensive Docker setup, troubleshooting, and production deployment guide
 
 ## ⚙️ Configuration
 
-### Backend Configuration (`application.yml`)
+---
 
-```yaml
-server:
-  port: 8080                          # Server port
+## 🚀 Capacity & Live Demo Guide
 
-spring:
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/orgchat
+### Concurrent Users
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: YOUR_CLIENT_ID
-            client-secret: YOUR_CLIENT_SECRET
-            redirect-uri: "http://localhost:8080/login/oauth2/code/google"
+| Resource | Capacity | 7 Users Need |
+|----------|----------|--------------|
+| WebSocket connections | ~400 | 7 |
+| MongoDB connection pool | 100 | 7 |
+| Nginx connections | 1024 | 7 |
+| RAM usage | ~2GB | ~50MB |
 
-app:
-  jwt:
-    secret: YOUR_JWT_SECRET
-    expiration-ms: 86400000           # 24 hours
-    refresh-expiration-ms: 604800000  # 7 days
+Comfortable real-world limits on a single machine:
+- ✅ 10–50 concurrent users — zero issues
+- ⚠️ 100+ — memory pressure on WebSocket broker
 
-  cors:
-    allowed-origins: http://localhost:4200
+### Live Pitch Demo (7 People)
 
-  frontend:
-    redirect-url: http://localhost:4200/login
+**The wow moment:**
+1. Open two browser windows side by side
+2. Log in with two different Google accounts
+3. Send messages → push instantly, zero refresh
+4. Share a file → appears live on other side
+5. Toggle dark/light mode
+6. Show merID search → find user, start chat
+7. Show `docker-compose ps` → all healthy
+
+**Suggested flow:**
+```
+Login via Google SSO (10 sec) →
+Two browsers side by side →
+Real-time text message →
+File share (image/PDF) →
+merID search demo →
+Dark/light toggle →
+docker-compose ps (all healthy)
 ```
 
-### Environment Variables
+> 7 users on this stack is like a sports car doing 10 km/h. You have more than enough headroom.
 
-Set these before running:
+---
 
-```bash
-# Backend
-export JWT_SECRET="your-secret-key"
-export MONGODB_URI="mongodb://localhost:27017/orgchat"
+## ⚙️ Configuration
 
-# Or in application.yml (above)
+### docker-compose.yml key variables
+
+```yaml
+# MongoDB
+MONGO_USERNAME: admin
+MONGO_PASSWORD: password
+
+# JWT
+APP_JWT_SECRET: your-secret-key
+APP_JWT_EXPIRATION_MS: 86400000       # 24 hours
+APP_JWT_REFRESH_EXPIRATION_MS: 604800000  # 7 days
+
+# CORS — add ngrok URL when using ngrok
+APP_CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:4200
+
+# OAuth2 redirect — update when using ngrok
+APP_FRONTEND_REDIRECT_URL: http://localhost:4200/login
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: http://localhost:8080/login/oauth2/code/google
 ```
 
 ### Google OAuth2 Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create OAuth 2.0 credentials (Web application)
-3. Add authorized redirect URI:
-   - `http://localhost:8080/login/oauth2/code/google`
-4. Copy `Client ID` and `Client Secret` to `application.yml`
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. APIs & Services → Credentials → Create OAuth 2.0 Client
+3. Add authorized redirect URI: `http://localhost:8080/login/oauth2/code/google`
+4. Copy Client ID and Secret to `docker-compose.yml`
 
 ---
 
 ## 📡 API Reference
 
-### Authentication Endpoints
-
+### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/auth/sso/login` | Initiate Google OAuth2 |
+| `GET` | `/oauth2/authorization/google` | Initiate Google OAuth2 |
 | `POST` | `/api/auth/refresh` | Refresh JWT token |
 | `POST` | `/api/auth/logout` | Logout user |
 
-### User Endpoints
+### Messages
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/messages/send` | Send message |
+| `POST` | `/api/messages/send-multi` | Send to multiple users |
+| `GET` | `/api/messages/conversation?withUser=` | Get conversation |
+| `GET` | `/api/messages/inbox` | Get all conversations |
+| `PUT` | `/api/messages/{id}` | Edit message |
+| `DELETE` | `/api/messages/{id}` | Delete message |
+| `DELETE` | `/api/messages/conversation?withUser=` | Delete conversation |
 
+### Media
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/media/upload` | Upload file (500MB max) |
+| `GET` | `/api/media/download/{id}` | Download file |
+| `GET` | `/api/media/info/{id}` | Get file metadata |
+| `DELETE` | `/api/media/delete/{id}` | Delete file |
+
+### Users & Mates
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/users/{merID}` | Get user profile |
-| `GET` | `/api/users/search/{merID}` | Search user by MerID |
-| `GET` | `/api/users/me` | Get current user |
-| `PUT` | `/api/users/{merID}` | Update user profile |
+| `GET` | `/api/mates/search?merID=` | Search user by merID |
+| `POST` | `/api/mates/request` | Send mate request |
+| `PUT` | `/api/mates/accept/{id}` | Accept mate request |
+| `GET` | `/api/mates/list` | Get all mates |
 
-### Message Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/messages` | Get message history |
-| `GET` | `/api/messages/{chatId}` | Get conversation messages |
-| `POST` | `/api/messages` | Send message (stored) |
-| `DELETE` | `/api/messages/{msgId}` | Delete message |
-
-### WebSocket Endpoints (STOMP)
-
+### WebSocket (STOMP)
 ```
-Connection: ws://localhost:8080/ws
-
-Send to:
-- /app/sendMessage          → Send real-time message
-- /app/searchByMerID        → Search users
-- /app/createMateRequest    → Send contact request
-
-Subscribe to:
-- /topic/room/{roomId}      → Room messages
-- /user/queue/notifications → Personal notifications
-- /user/queue/messages      → Personal messages
+Connect:    /ws (SockJS)
+Subscribe:  /user/queue/messages
+Messages:   action = SEND | EDIT | DELETE
 ```
-
-### Media Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/media/upload` | Upload file |
-| `GET` | `/api/media/{mediaId}/download` | Download file |
-| `DELETE` | `/api/media/{mediaId}` | Delete media |
-| `GET` | `/api/media/metadata/{mediaId}` | Get media info |
 
 ---
 
 ## 🔒 Security
 
-### Authentication Flow
-- **Google OAuth2** — External identity provider
-- **JWT Tokens** — Stateless authentication
-- **Refresh Tokens** — Secure in HTTP-Only cookies
-- **CORS** — Restricted to allowed origins
-
-### WebSocket Security
-- **STOMP Auth Interceptor** — JWT validation on each message
-- **User Isolation** — Users only see their own messages
-- **Rate Limiting** — Configure via security config
-
-### Data Protection
-- **Password-less Auth** — No passwords stored
-- **HTTPS Ready** — TLS/SSL support in production
-- **Database Encryption** — MongoDB encryption at rest
-
-### Security Checklist
-
-- [ ] Change JWT secret in production
-- [ ] Update Google OAuth credentials
-- [ ] Enable MongoDB authentication
-- [ ] Use HTTPS in production
-- [ ] Set secure CORS origins
-- [ ] Configure firewall rules
+- Google OAuth2 — no passwords stored
+- JWT with configurable expiry
+- Refresh tokens in HTTP-only cookies
+- CORS restricted to allowed origins
+- STOMP WebSocket JWT validation on every connect
+- MongoDB authentication required
 
 ---
 
 ## 🗄️ Database
 
-### MongoDB Collections
+### Collections
 
-#### 1. **Users**
-```javascript
-{
-  _id: ObjectId,                    // MongoDB ID
-  merID: "john.doe" (unique),       // Human-readable ID
-  email: "john@example.com" (unique),
-  displayName: "John Doe",
-  avatarUrl: "https://...",
-  role: "USER",                     // USER | ADMIN
-  ssoProvider: "google",
-  createdAt: ISODate("2024-03-21T10:00:00Z"),
-  updatedAt: ISODate("2024-03-21T10:00:00Z"),
-  lastLoginAt: ISODate("2024-03-21T15:30:00Z")
-}
-```
+**users** — merID (unique), email, displayName, avatarUrl, role, ssoProvider
 
-#### 2. **Messages**
-```javascript
-{
-  _id: ObjectId,
-  senderId: "john.doe",            // Foreign key
-  recipientId: "jane.smith",       // Foreign key
-  roomId: "room_123",              // Conversation ID
-  content: "Hello!",
-  fileUrl: "https://...",          // Optional
-  mediaId: ObjectId,               // Optional
-  timestamp: ISODate("2024-03-21T15:35:00Z"),
-  read: true
-}
-```
+**messages** — senderId, recipientId, content, mediaId, timestamp, read, isEdited
 
-#### 3. **Media**
-```javascript
-{
-  _id: ObjectId,
-  uploadedBy: "john.doe",
-  fileName: "photo.jpg",
-  fileType: "image/jpeg",
-  fileSize: 2048576,               // in bytes
-  s3Url: "https://...",
-  timestamp: ISODate("2024-03-21T15:36:00Z"),
-  metadata: {
-    width: 1920,
-    height: 1080
-  }
-}
-```
+**media** — uploaderId, fileName, fileType, fileSize, storagePath (GridFS), timestamp
 
-#### 4. **MateRequests**
-```javascript
-{
-  _id: ObjectId,
-  fromMerID: "john.doe",           // Sender
-  toMerID: "jane.smith",           // Recipient
-  status: "PENDING",               // PENDING | ACCEPTED | REJECTED
-  createdAt: ISODate("2024-03-21T15:37:00Z"),
-  respondedAt: null
-}
-```
+**mate_requests** — fromMerID, toMerID, status (PENDING/ACCEPTED/REJECTED)
 
-### Database Indexes
-
-```javascript
-// Optimize queries
-db.users.createIndex({ merID: 1 }, { unique: true })
-db.users.createIndex({ email: 1 }, { unique: true })
-db.messages.createIndex({ senderId: 1, recipientId: 1 })
-db.messages.createIndex({ roomId: 1, timestamp: -1 })
-db.mateRequests.createIndex({ fromMerID: 1, toMerID: 1 })
-```
-
-### Database Migration
-
-The **DatabaseMigrationRunner** automatically:
-- Detects corrupted ObjectId entries in `merID`
-- Converts them to human-readable identifiers
-- Updates all foreign key references
-- Logs migration progress
-
-Runs automatically on startup ✅
+**sessions** — userId, jwtToken, issuedAt, expiresAt (TTL auto-delete)
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Frontend won't connect to backend
+### Backend won't start
 ```bash
-# Check backend is running
-curl http://localhost:8080/api/health
+# Check logs
+docker-compose logs backend
 
-# Check CORS in application.yml
-# Ensure http://localhost:4200 is in allowed-origins
+# Most common cause: bad MongoDB index from old volume
+docker-compose down -v
+docker-compose up -d
 ```
 
-### WebSocket connection failed
+### Messages not pushing in real time
 ```bash
-# Verify WebSocket endpoint
-ws://localhost:8080/ws
-
-# Check StompAuthChannelInterceptor is intercepting
-# Verify JWT token is valid
+# Check WebSocket connected in browser console (F12)
+# Verify wsUrl uses window.location.origin not localhost:8080
+# Check nginx /ws proxy rule exists
+docker exec orgchat-frontend cat /etc/nginx/nginx.conf | grep -A5 "ws"
 ```
 
-### MongoDB connection error
+### Google login fails on ngrok
 ```bash
-# Start MongoDB
-mongod
-# or
-brew services start mongodb-community
+# Verify backend has correct redirect URI
+docker-compose exec backend env | grep REDIRECT
 
-# Check URI in application.yml
-mongodb://localhost:27017/orgchat
+# Check Google Console has ngrok URL in both:
+# - Authorized JavaScript origins
+# - Authorized redirect URIs
 ```
 
-### Google OAuth not working
+### Port conflicts
 ```bash
-# Verify redirect URI matches exactly:
-http://localhost:8080/login/oauth2/code/google
+# Check what's using port 4200 or 80
+netstat -ano | findstr :4200   # Windows
+lsof -i :4200                  # Mac/Linux
 
-# Check Client ID and Secret in application.yml
-# Ensure Google APIs enabled in Cloud Console
-```
-
----
-
-## 📝 Development Notes
-
-### Running in Production
-```bash
-# Build backend
-mvn clean install -DskipTests
-
-# Build frontend
-ng build --configuration production
-
-# Run with environment
-java -Dspring.profiles.active=production \
-     -DJWT_SECRET=prod-secret \
-     -jar target/orgchat-backend-0.0.1-SNAPSHOT.jar
-```
-
-### Database Backup
-```bash
-mongodump --uri "mongodb://localhost:27017/orgchat" \
-          --out ./backup
-
-mongorestore --uri "mongodb://localhost:27017/orgchat" \
-             ./backup
+# Change port in docker-compose.yml
+ports:
+  - "4201:80"  # use different host port
 ```
 
 ---
@@ -910,29 +754,10 @@ For a 7-person pitch, OrgChat is **completely overkill ready**.
 
 ## �📄 License
 
-MIT License — See LICENSE.md
-
----
-
-## 👥 Contributing
-
-1. Fork repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
-
----
-
-## 📧 Support
-
-For issues and questions:
-- Open GitHub Issue
-- Email: support@orgchat.com
-- Documentation: [Wiki](https://github.com/yourusername/OrgChat/wiki)
+MIT License
 
 ---
 
 **Built with ❤️ for secure organizational communication**
 
-Last Updated: March 21, 2026 | v0.0.1-SNAPSHOT
+Last Updated: March 2026 | v0.0.1-SNAPSHOT

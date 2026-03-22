@@ -38,9 +38,9 @@ app:
     expiration-ms: 86400000
     refresh-expiration-ms: 604800000
   cors:
-    allowed-origins: http://localhost:4200
+    allowed-origins: "http://localhost:4200,https://*.ngrok-free.app,https://*.ngrok.io,https://*.ngrok.app,http://localhost"
   frontend:
-    redirect-url: http://localhost:4200/login
+    redirect-url: "http://localhost:4200/login"
 
 # Logging configuration
 logging:

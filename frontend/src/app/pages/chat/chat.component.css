@@ -1,8 +1,11 @@
 .chat-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* dynamic viewport height — shrinks when mobile keyboard opens */
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -266,6 +269,9 @@
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chat-area.contact-selected {
@@ -359,6 +365,8 @@
   background-color: var(--bg-secondary);
   display: flex;
   gap: 10px;
+  flex-shrink: 0; /* never shrink — always visible above keyboard */
+  flex-wrap: wrap;
 }
 
 .message-input-area input {
@@ -778,7 +786,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
+  min-height: 0; /* critical — allows flex child to shrink below content size */
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
+  overscroll-behavior: contain;
 }
 
 .message {
@@ -1561,6 +1572,17 @@
   line-height: 1.6;
 }
 
+/* Long press hint on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .conversation-item::after {
+    content: '';
+  }
+  .conversation-item:active {
+    background: var(--accent-hover);
+    transition: background 0.6s ease;
+  }
+}
+
 .add-btn {
   padding: 4px 12px;
   background: rgba(99, 102, 241, 0.2);
@@ -1677,5 +1699,378 @@
     max-height: 0;
     padding: 0;
     margin: 0;
+  }
+}
+
+/* === MOBILE OVERLAY === */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+/* === HAMBURGER BUTTON === */
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 6px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.hamburger-btn:hover {
+  background: var(--chat-bg-item-hover);
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* === MOBILE BREAKPOINT — Samsung S20 FE is 412px wide === */
+@media (max-width: 768px) {
+
+  /* Full viewport fit — 390x844 (S20 FE, iPhone 14) */
+  .chat-layout {
+    height: 100dvh;
+    width: 100vw;
+    max-width: 100%;
+  }
+
+  /* Chat area fills all remaining space after header */
+  .chat-area {
+    width: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Chat header fixed height */
+  .chat-header {
+    flex-shrink: 0;
+    height: 56px;
+    min-height: 56px;
+  }
+
+  /* Messages fill remaining space and scroll internally */
+  .messages-container {
+    flex: 1;
+    min-height: 0;
+    padding: 12px 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Input area anchored at bottom with breathing room */
+  .message-input-area {
+    flex-shrink: 0;
+    padding: 10px 12px 20px 12px; /* 20px bottom keeps it above browser chrome */
+    min-height: 72px;
+    align-items: center;
+    flex-wrap: nowrap; /* prevent buttons wrapping to next line */
+    gap: 6px;
+  }
+
+  /* Input field — no zoom on focus (font-size >= 16px prevents iOS zoom) */
+  .message-input-area input {
+    font-size: 16px;
+    padding: 10px 12px;
+    height: 44px;
+    border-radius: 22px;
+    flex: 1;
+    min-width: 0; /* allows input to shrink so buttons dont overflow */
+  }
+
+  /* Send and attach buttons — fixed small size so they dont overflow */
+  .send-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .attach-btn {
+    width: 40px;
+    height: 44px;
+    min-width: 40px;
+    border-radius: 50%;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* SVG icons inside buttons — 22px on mobile, overrides HTML attributes */
+  .send-btn svg,
+  .attach-btn svg,
+  .btn-icon {
+    width: 22px !important;
+    height: 22px !important;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  /* Sidebar nav — stack vertically on very small screens to prevent overflow */
+  .sidebar-nav {
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .nav-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.95rem;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  /* Overflow visible when sidebar open */
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* Hamburger visible on mobile */
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .mobile-only {
+    display: flex;
+  }
+
+  /* Sidebar slides in from left */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: 80vw;
+    max-width: 300px;
+    min-width: 260px;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* Chat area takes full width */
+  .chat-area {
+    width: 100%;
+    flex: 1;
+  }
+
+  /* Chat header with hamburger */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: 56px;
+  }
+
+  .chat-header span {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Messages container — comfortable padding on mobile */
+  .messages-container {
+    padding: 12px 10px;
+    gap: 8px;
+  }
+
+  /* Message bubbles — max 80% width on mobile */
+  .message-bubble {
+    max-width: 80%;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+  }
+
+  /* Input area — taller tap targets */
+  .message-input-area {
+    padding: 10px 10px;
+    gap: 8px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .message-input-area input {
+    padding: 12px 14px;
+    font-size: 1rem;
+    min-height: 48px;
+    border-radius: 24px;
+  }
+
+  /* Send button — bigger tap target */
+  .send-btn {
+    min-width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    padding: 0;
+  }
+
+  /* Attach button — bigger tap target */
+  .attach-btn {
+    min-width: 44px;
+    height: 48px;
+    border-radius: 50%;
+    padding: 0;
+  }
+
+  /* Sidebar nav buttons */
+  .sidebar-nav {
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .nav-btn {
+    padding: 12px;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  /* Search box */
+  .search-box input {
+    font-size: 1rem;
+    padding: 10px 14px;
+    min-height: 44px;
+    border-radius: 8px;
+  }
+
+  /* Conversation items — easier to tap */
+  .conversation-item {
+    padding: 14px 16px;
+    min-height: 64px;
+  }
+
+  .contact-name {
+    font-size: 0.95rem;
+  }
+
+  .conversation-last-msg {
+    font-size: 0.8rem;
+  }
+
+  /* Media images — full width on mobile */
+  .media-image-card {
+    max-width: 100%;
+  }
+
+  .media-video {
+    max-width: 100%;
+  }
+
+  .media-file-card {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Message dropdown — bigger tap targets */
+  .message-dropdown {
+    min-width: 140px;
+  }
+
+  .message-dropdown-item {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+
+  /* Message menu button — easier to tap */
+  .message-menu-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Edit banner */
+  .edit-banner {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  /* Toast — above keyboard on mobile */
+  .toast-notification {
+    bottom: 80px;
+  }
+
+  /* Sidebar header user info */
+  .user-name {
+    font-size: 0.85rem;
+  }
+
+  /* Contact avatar */
+  .contact-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  /* Logo section */
+  .sidebar-logo {
+    padding: 12px 16px;
+  }
+
+  .logo-text {
+    font-size: 1.1rem;
+  }
+
+  /* Search result card */
+  .search-result-card {
+    margin: 8px;
+    padding: 12px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    font-size: 1rem;
+    padding: 20px;
+    text-align: center;
+  }
+
+  /* Unread badge */
+  .unread-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Extra small — phones under 380px (older/smaller devices) */
+@media (max-width: 380px) {
+  .message-bubble {
+    max-width: 88%;
+    font-size: 0.9rem;
+  }
+
+  .sidebar {
+    width: 92vw;
+  }
+
+  .chat-header span {
+    font-size: 0.95rem;
   }
 }

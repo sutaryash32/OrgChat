@@ -54,6 +54,17 @@ export class ChatComponent implements OnInit, OnDestroy {
   toastMessage = '';
   isUploading = false;
 
+  // Mobile sidebar toggle
+  isSidebarOpen = false;
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  closeSidebar(): void {
+    this.isSidebarOpen = false;
+  }
+
   private subscriptions: Subscription[] = [];
 
   ngOnInit(): void {
@@ -112,6 +123,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.messages = [];
     this.messageContent = '';
     this.isLoading.set(true);
+    this.closeSidebar(); // close sidebar on mobile when chat selected
     this.loadConversation();
 
     // Reset unread count and mark messages as read
@@ -606,6 +618,32 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.deleteConfirmMerID = summary.partnerMerID;
   }
 
+  // Mobile long press support
+  private longPressTimer: any = null;
+
+  onTouchStart(summary: ConversationSummary, event: TouchEvent): void {
+    this.longPressTimer = setTimeout(() => {
+      event.preventDefault();
+      this.deleteConfirmMerID = summary.partnerMerID;
+      this.longPressTimer = null;
+    }, 600); // 600ms hold = long press
+  }
+
+  onTouchEnd(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
+  onTouchMove(): void {
+    // Cancel long press if user scrolls
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
   confirmDelete(): void {
     if (!this.deleteConfirmMerID || !this.selectedUser) {
       return;
@@ -645,6 +683,11 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   cancelDelete(): void {
     this.deleteConfirmMerID = null;
+  }
+
+  closeChat(): void {
+    this.selectedUser = null as any;
+    this.messages = [];
   }
 }
 
