@@ -1561,6 +1561,17 @@
   line-height: 1.6;
 }
 
+/* Long press hint on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .conversation-item::after {
+    content: '';
+  }
+  .conversation-item:active {
+    background: var(--accent-hover);
+    transition: background 0.6s ease;
+  }
+}
+
 .add-btn {
   padding: 4px 12px;
   background: rgba(99, 102, 241, 0.2);

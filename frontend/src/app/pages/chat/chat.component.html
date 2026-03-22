@@ -87,7 +87,10 @@
             [class.selected]="isRecipientSelected(conv.partnerMerID)"
             [class.removing]="deletingMerID === conv.partnerMerID"
             (click)="isMultiSelectMode ? selectUser({merID: conv.partnerMerID, displayName: conv.partnerDisplayName, avatarUrl: conv.partnerAvatarUrl}) : selectConversation(conv)"
-            (dblclick)="onConversationDoubleClick(conv, $event)">
+            (dblclick)="onConversationDoubleClick(conv, $event)"
+            (touchstart)="onTouchStart(conv, $event)"
+            (touchend)="onTouchEnd()"
+            (touchmove)="onTouchMove()">
 
             @if (isMultiSelectMode) {
               <div class="checkbox-indicator" [class.checked]="isRecipientSelected(conv.partnerMerID)"></div>

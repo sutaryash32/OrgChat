@@ -606,6 +606,32 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.deleteConfirmMerID = summary.partnerMerID;
   }
 
+  // Mobile long press support
+  private longPressTimer: any = null;
+
+  onTouchStart(summary: ConversationSummary, event: TouchEvent): void {
+    this.longPressTimer = setTimeout(() => {
+      event.preventDefault();
+      this.deleteConfirmMerID = summary.partnerMerID;
+      this.longPressTimer = null;
+    }, 600); // 600ms hold = long press
+  }
+
+  onTouchEnd(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
+  onTouchMove(): void {
+    // Cancel long press if user scrolls
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
   confirmDelete(): void {
     if (!this.deleteConfirmMerID || !this.selectedUser) {
       return;
