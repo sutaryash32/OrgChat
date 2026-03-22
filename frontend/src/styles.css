@@ -77,11 +77,14 @@
 
 html, body {
   height: 100%;
+  height: 100dvh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* prevent body scroll on mobile */
+  overscroll-behavior: none;
 }
 
 ::-webkit-scrollbar {
