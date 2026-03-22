@@ -7,8 +7,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
       MONGO_INITDB_DATABASE: orgchat
     volumes:
       - mongodb_data:/data/db
@@ -32,24 +32,24 @@ services:
       - "8080:8080"
     environment:
       # MongoDB Configuration
-      SPRING_DATA_MONGODB_URI: mongodb://admin:password@mongodb:27017/orgchat?authSource=admin
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/orgchat?authSource=admin
       SPRING_DATA_MONGODB_AUTO_INDEX_CREATION: "true"
 
       # JWT Configuration
-      APP_JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      APP_JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       APP_JWT_EXPIRATION_MS: 86400000
       APP_JWT_REFRESH_EXPIRATION_MS: 604800000
 
-      # CORS Configuration — update NGROK_URL when ngrok restarts
-      APP_CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:4200,https://7a80-49-204-20-15.ngrok-free.app
+      # CORS Configuration
+      APP_CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:4200,http://localhost:80
 
       # OAuth2 Google Configuration
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: 183781504942-bkeaqdp7i1qlk3h4iendge0i0j406ua3.apps.googleusercontent.com
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: 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
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: https://7a80-49-204-20-15.ngrok-free.app/login/oauth2/code/google
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/login/oauth2/code/google}
 
       # Frontend Configuration
-      APP_FRONTEND_REDIRECT_URL: https://7a80-49-204-20-15.ngrok-free.app/login
+      APP_FRONTEND_REDIRECT_URL: ${FRONTEND_REDIRECT_URL:-http://localhost:4200/login}
 
       # Server Configuration
       SERVER_PORT: 8080
@@ -86,7 +86,7 @@ services:
     networks:
       - orgchat-network
 
-  # Mongo Express - MongoDB admin UI (Optional)
+  # Mongo Express - MongoDB admin UI (Optional, remove if not needed)
   mongo-express:
     image: mongo-express:latest
     container_name: orgchat-mongo-express
@@ -94,9 +94,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: password
-      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongodb:27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-password}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017
       ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
       ME_CONFIG_SITE_SSL_ENABLED: "false"
     depends_on:
